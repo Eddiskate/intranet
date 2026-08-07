@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STAFF
+  AGENT
+  ADMIN
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model User {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  firstName  String
+  lastName   String
+  email      String   @unique
+  department String
+  role       UserRole @default(STAFF)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  groups GroupMember[]
+}
+
+model TicketGroup {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members GroupMember[]
+  tickets Ticket[]
+}
+
+model GroupMember {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String @db.ObjectId
+  groupId String @db.ObjectId
+
+  user  User        @relation(fields: [userId], references: [id])
+  group TicketGroup @relation(fields: [groupId], references: [id])
+
+  @@unique([userId, groupId])
+}
+
+model Ticket {
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  groupId            String       @db.ObjectId
+  requesterName      String
+  requesterEmail     String
+  organizationalUnit String
+  room               String
+  phone              String
+  subject            String
+  body               String
+  computerIp         String?
+  status             TicketStatus @default(OPEN)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  group       TicketGroup  @relation(fields: [groupId], references: [id])
+  attachments Attachment[]
+}
+
+model Attachment {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  ticketId     String   @db.ObjectId
+  originalName String
+  filename     String
+  mimeType     String
+  size         Int
+  createdAt    DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+}

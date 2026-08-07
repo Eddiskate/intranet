@@ -1,0 +1,22 @@
+<div class="shell">
+  <header class="topbar">
+    <a routerLink="/helpdesk" class="brand">
+      <span class="brand__mark" aria-hidden="true"></span>
+      <span class="brand__text">
+        <strong>Intranet</strong>
+        <small>Szpital Rejonowy · Racibórz</small>
+      </span>
+    </a>
+    <nav>
+      <a routerLink="/helpdesk" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        Zgłoszenia
+      </a>
+      <a routerLink="/helpdesk/dashboard" routerLinkActive="active">Dashboard</a>
+      <a routerLink="/helpdesk/users" routerLinkActive="active">Użytkownicy</a>
+    </nav>
+  </header>
+
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

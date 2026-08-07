@@ -1,0 +1,114 @@
+<a routerLink="/helpdesk" class="back">← Powrót do grup</a>
+
+@if (loading()) {
+  <p class="state">Ładowanie formularza…</p>
+} @else if (error() && !group()) {
+  <p class="state state--error">{{ error() }}</p>
+} @else if (success()) {
+  <div class="success">
+    <h1>Zgłoszenie przyjęte</h1>
+    <p>Dziękujemy. Zespół {{ group()?.name }} otrzymał Twoje zgłoszenie.</p>
+  </div>
+} @else {
+  <header class="page-head">
+    <p class="eyebrow">Nowe zgłoszenie</p>
+    <h1>{{ group()?.name }}</h1>
+    <p class="muted">
+      Wypełnij wszystkie wymagane pola. Osoby odpowiedzialne zobaczą zgłoszenie
+      w swoim dashboardzie — nie wybierasz ich ręcznie.
+    </p>
+  </header>
+
+  @if (error()) {
+    <p class="banner-error">{{ error() }}</p>
+  }
+
+  <form class="form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="field">
+      <label for="requesterName">Imię i nazwisko zgłaszającego <span>*</span></label>
+      <input id="requesterName" type="text" formControlName="requesterName" />
+    </div>
+
+    <div class="field">
+      <label for="requesterEmail">Twój adres e-mail <span>*</span></label>
+      <input id="requesterEmail" type="email" formControlName="requesterEmail" />
+    </div>
+
+    <div class="field">
+      <label for="organizationalUnit">Komórka organizacyjna <span>*</span></label>
+      <select id="organizationalUnit" formControlName="organizationalUnit">
+        <option value="" disabled>Wybierz komórkę…</option>
+        @for (unit of units(); track unit) {
+          <option [value]="unit">{{ unit }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="room">Nr pomieszczenia lub jego opis <span>*</span></label>
+      <input id="room" type="text" formControlName="room" />
+    </div>
+
+    <div class="field">
+      <label for="phone">Nr telefonu <span>*</span></label>
+      <input id="phone" type="tel" formControlName="phone" />
+    </div>
+
+    <div class="field">
+      <label for="subject">Temat <span>*</span></label>
+      <input id="subject" type="text" formControlName="subject" />
+    </div>
+
+    <div class="field">
+      <label for="body">Treść <span>*</span></label>
+      <textarea id="body" rows="6" formControlName="body"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="computerIp">Adres IP komputera</label>
+      <input id="computerIp" type="text" formControlName="computerIp" placeholder="np. 192.168.10.177" />
+      @if (ipAutoFilled()) {
+        <p class="field-hint">Wykryty automatycznie — możesz poprawić ręcznie.</p>
+      }
+    </div>
+
+    <fieldset class="attachments">
+      <legend>Załączniki (max. 4 MB / plik, do {{ maxFiles }} plików)</legend>
+
+      <label
+        class="dropzone"
+        [class.dropzone--active]="dragOver()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+      >
+        <input
+          type="file"
+          multiple
+          class="dropzone__input"
+          (change)="onFileInput($event)"
+        />
+        <span class="dropzone__title">Przeciągnij pliki tutaj</span>
+        <span class="dropzone__hint">lub kliknij, aby wybrać z dysku</span>
+      </label>
+
+      @if (files().length) {
+        <ul class="file-list">
+          @for (file of files(); track file.name + file.size + file.lastModified; let i = $index) {
+            <li>
+              <div>
+                <strong>{{ file.name }}</strong>
+                <span>{{ formatSize(file.size) }}</span>
+              </div>
+              <button type="button" class="remove" (click)="removeFile(i)">Usuń</button>
+            </li>
+          }
+        </ul>
+      }
+    </fieldset>
+
+    <button class="btn btn--primary" type="submit" [disabled]="submitting()">
+      {{ submitting() ? 'Wysyłanie…' : 'Wyślij zgłoszenie' }}
+    </button>
+  </form>
+}

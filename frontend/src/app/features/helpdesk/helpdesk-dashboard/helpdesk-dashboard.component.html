@@ -1,0 +1,99 @@
+<a routerLink="/helpdesk" class="back">← Helpdesk</a>
+
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Panel agenta</p>
+    <h1>Dashboard helpdesku</h1>
+    <p class="muted">
+      Widzisz zgłoszenia z grup, do których jesteś przypisany.
+    </p>
+  </div>
+
+  <div class="filters">
+    <label>
+      Zalogowany jako
+      <select
+        [ngModel]="session.userId()"
+        (ngModelChange)="onUserChange($event)"
+      >
+        @for (user of agentUsers(); track user.id) {
+          <option [value]="user.id">{{ displayName(user) }} · {{ user.department }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      Status
+      <select
+        [ngModel]="statusFilter()"
+        (ngModelChange)="onStatusChange($event)"
+      >
+        <option value="">Wszystkie</option>
+        <option value="OPEN">Otwarte</option>
+        <option value="IN_PROGRESS">W trakcie</option>
+        <option value="RESOLVED">Rozwiązane</option>
+        <option value="CLOSED">Zamknięte</option>
+      </select>
+    </label>
+  </div>
+</header>
+
+@if (session.currentUser(); as user) {
+  <div class="who">
+    Twoje grupy:
+    <strong>{{ groupLabel(user) }}</strong>
+  </div>
+}
+
+@if (loading()) {
+  <p class="state">Ładowanie zgłoszeń…</p>
+} @else if (error()) {
+  <p class="state state--error">{{ error() }}</p>
+} @else if (!tickets().length) {
+  <p class="state">Brak zgłoszeń w Twoich grupach.</p>
+} @else {
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Grupa</th>
+          <th>Temat</th>
+          <th>Zgłaszający</th>
+          <th>Komórka</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (ticket of tickets(); track ticket.id) {
+          <tr>
+            <td>{{ ticket.createdAt | date: 'dd.MM.yyyy HH:mm' }}</td>
+            <td>{{ ticket.group?.name }}</td>
+            <td>
+              <a [routerLink]="['/helpdesk/tickets', ticket.id]">{{ ticket.subject }}</a>
+            </td>
+            <td>{{ ticket.requesterName }}</td>
+            <td>{{ ticket.organizationalUnit }}</td>
+            <td>
+              <span class="badge" [attr.data-status]="ticket.status">
+                {{ statusLabels[ticket.status] }}
+              </span>
+            </td>
+            <td class="actions">
+              <select
+                [ngModel]="ticket.status"
+                (ngModelChange)="setStatus(ticket, $event)"
+              >
+                <option value="OPEN">Otwarte</option>
+                <option value="IN_PROGRESS">W trakcie</option>
+                <option value="RESOLVED">Rozwiązane</option>
+                <option value="CLOSED">Zamknięte</option>
+              </select>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

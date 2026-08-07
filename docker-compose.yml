@@ -1,0 +1,36 @@
+services:
+  intranet:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      SEED_ON_START: "true"
+      DATA_DIR: /data
+      UPLOADS_DIR: /data/uploads
+      # Podstaw swój connection string MongoDB:
+      DATABASE_URL: mongodb://mongo:27017/intranet?replicaSet=rs0
+    volumes:
+      - intranet-data:/data
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  # Opcjonalnie lokalnie — na EasyPanel używasz zewnętrznego Mongo
+  mongo:
+    image: mongo:7
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "try { rs.status().ok } catch(e) { rs.initiate({_id:'rs0', members:[{_id:0, host:'mongo:27017'}]}).ok }"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  intranet-data:
+  mongo-data:

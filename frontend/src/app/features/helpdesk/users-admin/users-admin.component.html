@@ -1,0 +1,103 @@
+<a routerLink="/helpdesk" class="back">← Helpdesk</a>
+
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Administracja</p>
+    <h1>Użytkownicy</h1>
+    <p class="muted">Imię, nazwisko, dział oraz przypisanie do grup zgłoszeń.</p>
+  </div>
+  <button type="button" class="btn btn--ghost" (click)="startCreate()">Nowy użytkownik</button>
+</header>
+
+@if (error()) {
+  <p class="banner-error">{{ error() }}</p>
+}
+
+<div class="layout">
+  <form class="panel form" [formGroup]="form" (ngSubmit)="save()">
+    <h2>{{ editingId() ? 'Edycja' : 'Nowy użytkownik' }}</h2>
+
+    <div class="field">
+      <label for="firstName">Imię <span>*</span></label>
+      <input id="firstName" formControlName="firstName" />
+    </div>
+    <div class="field">
+      <label for="lastName">Nazwisko <span>*</span></label>
+      <input id="lastName" formControlName="lastName" />
+    </div>
+    <div class="field">
+      <label for="email">E-mail <span>*</span></label>
+      <input id="email" type="email" formControlName="email" />
+    </div>
+    <div class="field">
+      <label for="department">Dział <span>*</span></label>
+      <select id="department" formControlName="department">
+        <option value="" disabled>Wybierz dział…</option>
+        @for (dep of departments(); track dep) {
+          <option [value]="dep">{{ dep }}</option>
+        }
+      </select>
+    </div>
+    <div class="field">
+      <label for="role">Rola</label>
+      <select id="role" formControlName="role">
+        <option value="STAFF">Pracownik</option>
+        <option value="AGENT">Agent helpdesku</option>
+        <option value="ADMIN">Administrator</option>
+      </select>
+    </div>
+
+    <fieldset>
+      <legend>Grupy zgłoszeń</legend>
+      <p class="hint">Agent widzi w dashboardzie zgłoszenia z wybranych grup.</p>
+      @for (group of groups(); track group.id) {
+        <label class="check">
+          <input
+            type="checkbox"
+            [checked]="isGroupSelected(group.id)"
+            (change)="toggleGroup(group.id, $any($event.target).checked)"
+          />
+          {{ group.name }}
+        </label>
+      }
+    </fieldset>
+
+    <button class="btn btn--primary" type="submit" [disabled]="saving()">
+      {{ saving() ? 'Zapisywanie…' : 'Zapisz' }}
+    </button>
+  </form>
+
+  <div class="panel list">
+    <h2>Lista ({{ users().length }})</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Imię i nazwisko</th>
+            <th>Dział</th>
+            <th>Rola</th>
+            <th>Grupy</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of users(); track user.id) {
+            <tr>
+              <td>
+                <strong>{{ user.firstName }} {{ user.lastName }}</strong>
+                <div class="email">{{ user.email }}</div>
+              </td>
+              <td>{{ user.department }}</td>
+              <td>{{ user.role }}</td>
+              <td>{{ groupNames(user) }}</td>
+              <td class="row-actions">
+                <button type="button" class="linkish" (click)="startEdit(user)">Edytuj</button>
+                <button type="button" class="linkish danger" (click)="remove(user)">Usuń</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

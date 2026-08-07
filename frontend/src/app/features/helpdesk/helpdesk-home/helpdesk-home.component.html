@@ -1,0 +1,49 @@
+<section class="hero">
+  <div class="hero__content">
+    <p class="eyebrow">Intranet · Helpdesk</p>
+    <h1>Szpital Rejonowy<br /><span>im. dr. Józefa Rostka</span></h1>
+    <p class="lead">
+      Wybierz dział odpowiedzialny za zgłoszenie. Zgłoszenie trafi do osób
+      przypisanych do grupy — nie musisz ich wskazywać ręcznie.
+    </p>
+    <div class="hero__actions">
+      <a routerLink="/helpdesk/dashboard" class="btn btn--ghost">Dashboard agenta</a>
+      <a routerLink="/helpdesk/users" class="btn btn--ghost">Użytkownicy</a>
+    </div>
+  </div>
+  <aside class="notice">
+    <strong>Uwaga</strong>
+    <p>Zamówienia tonerów i podzespołów do drukarek — dział Informatyki.</p>
+  </aside>
+</section>
+
+@if (loading()) {
+  <p class="state">Ładowanie grup…</p>
+} @else if (error()) {
+  <p class="state state--error">{{ error() }}</p>
+} @else {
+  <section class="groups">
+    @for (group of groups(); track group.id) {
+      <a
+        class="group-card"
+        [class.accent-it]="group.slug === 'informatyka'"
+        [class.accent-med]="group.slug === 'aparatura-medyczna'"
+        [class.accent-phone]="group.slug === 'telefony-kontrola-dostepu'"
+        [class.accent-tech]="group.slug === 'dzial-techniczny'"
+        [routerLink]="['/helpdesk/new', group.slug]"
+      >
+        <div class="group-card__top">
+          <span class="group-card__mark" aria-hidden="true"></span>
+          <span class="group-card__count">{{ group._count?.tickets ?? 0 }} zgł.</span>
+        </div>
+        <h2>{{ group.name }}</h2>
+        <p>{{ group.description }}</p>
+        <div class="group-card__people">
+          <span class="label">Osoby odpowiedzialne</span>
+          <p>{{ memberNames(group) || 'Brak przypisanych agentów' }}</p>
+        </div>
+        <span class="group-card__cta">Utwórz zgłoszenie →</span>
+      </a>
+    }
+  </section>
+}

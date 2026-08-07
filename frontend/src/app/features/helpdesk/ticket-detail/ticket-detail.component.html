@@ -1,0 +1,66 @@
+<a routerLink="/helpdesk/dashboard" class="back">← Dashboard</a>
+
+@if (error()) {
+  <p class="state state--error">{{ error() }}</p>
+} @else if (!ticket()) {
+  <p class="state">Ładowanie…</p>
+} @else {
+  @if (ticket(); as t) {
+    <header class="page-head">
+      <div>
+        <p class="eyebrow">{{ t.group?.name }}</p>
+        <h1>{{ t.subject }}</h1>
+        <p class="meta">
+          {{ t.createdAt | date: 'dd.MM.yyyy HH:mm' }} ·
+          <span class="badge" [attr.data-status]="t.status">{{ statusLabels[t.status] }}</span>
+        </p>
+      </div>
+      <label class="status-control">
+        Zmień status
+        <select [ngModel]="t.status" (ngModelChange)="setStatus($event)">
+          <option value="OPEN">Otwarte</option>
+          <option value="IN_PROGRESS">W trakcie</option>
+          <option value="RESOLVED">Rozwiązane</option>
+          <option value="CLOSED">Zamknięte</option>
+        </select>
+      </label>
+    </header>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>Treść</h2>
+        <p class="body">{{ t.body }}</p>
+      </section>
+
+      <aside class="panel">
+        <h2>Dane zgłaszającego</h2>
+        <dl>
+          <div><dt>Imię i nazwisko</dt><dd>{{ t.requesterName }}</dd></div>
+          <div><dt>E-mail</dt><dd>{{ t.requesterEmail }}</dd></div>
+          <div><dt>Komórka</dt><dd>{{ t.organizationalUnit }}</dd></div>
+          <div><dt>Pomieszczenie</dt><dd>{{ t.room }}</dd></div>
+          <div><dt>Telefon</dt><dd>{{ t.phone }}</dd></div>
+          <div><dt>IP komputera</dt><dd>{{ t.computerIp || '—' }}</dd></div>
+        </dl>
+
+        @if (t.attachments?.length) {
+          <h3>Załączniki</h3>
+          <ul>
+            @for (file of t.attachments; track file.id) {
+              <li>{{ file.originalName }} ({{ (file.size / 1024) | number: '1.0-0' }} KB)</li>
+            }
+          </ul>
+        }
+
+        @if (t.group?.members?.length) {
+          <h3>Osoby w grupie</h3>
+          <ul>
+            @for (m of t.group!.members; track m.id) {
+              <li>{{ m.user?.firstName }} {{ m.user?.lastName }}</li>
+            }
+          </ul>
+        }
+      </aside>
+    </div>
+  }
+}
