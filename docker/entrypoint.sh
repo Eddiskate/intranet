@@ -6,8 +6,13 @@ mkdir -p "$DATA_DIR/uploads"
 
 export UPLOADS_DIR="${UPLOADS_DIR:-${DATA_DIR}/uploads}"
 
+# EasyPanel często podaje MONGO_URL — mapujemy na DATABASE_URL dla Prisma
+if [ -z "$DATABASE_URL" ] && [ -n "$MONGO_URL" ]; then
+  export DATABASE_URL="$MONGO_URL"
+fi
+
 if [ -z "$DATABASE_URL" ]; then
-  echo "ERROR: DATABASE_URL is required (MongoDB connection string)."
+  echo "ERROR: DATABASE_URL or MONGO_URL is required (MongoDB connection string)."
   exit 1
 fi
 

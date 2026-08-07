@@ -42,7 +42,7 @@ Jeden kontener serwuje API + zbudowany frontend. Baza = zewnętrzne MongoDB.
 | Zmienna | Wartość | Opis |
 |---|---|---|
 | `PORT` | `3000` | Port HTTP |
-| `DATABASE_URL` | `mongodb://...` / `mongodb+srv://...` | Connection string do Twojego Mongo |
+| `DATABASE_URL` lub `MONGO_URL` | `mongodb://...` | Connection string do Mongo |
 | `UPLOADS_DIR` | `/data/uploads` | Załączniki na wolumenie |
 | `SEED_ON_START` | `true` (tylko 1. start) | Seed grup/userów |
 | `CORS_ORIGIN` | _(opcjonalnie)_ | np. `https://intranet.twoja-domena.pl` |

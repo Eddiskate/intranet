@@ -41,9 +41,7 @@ RUN apt-get update \
   && mkdir -p /data/uploads
 
 COPY backend/package.json backend/package-lock.json ./
-RUN npm ci --omit=dev \
-  && npm install prisma@6 tsx --no-save \
-  && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=backend-build /app/backend/dist ./dist
 COPY --from=backend-build /app/backend/prisma ./prisma
