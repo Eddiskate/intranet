@@ -16,6 +16,10 @@ if [ -z "$DATABASE_URL" ]; then
   exit 1
 fi
 
+# Log hosta bez credentials (łatwiejszy debug auth)
+DB_HOST="$(printf '%s' "$DATABASE_URL" | sed -E 's#^[a-zA-Z0-9+.-]+://([^/]+@)?##' | cut -d/ -f1)"
+echo "Mongo target: ${DB_HOST:-unknown}"
+
 echo "Syncing MongoDB schema (prisma db push)..."
 npx prisma db push --skip-generate
 
