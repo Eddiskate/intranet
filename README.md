@@ -47,18 +47,22 @@ Jeden kontener serwuje API + zbudowany frontend. Baza = zewnętrzne MongoDB.
 | `SEED_ON_START` | `true` (tylko 1. start) | Seed grup/userów |
 | `CORS_ORIGIN` | _(opcjonalnie)_ | np. `https://intranet.twoja-domena.pl` |
 
-Przykład `DATABASE_URL`:
+Przykład `DATABASE_URL` / `MONGO_URL` (EasyPanel):
 
 ```text
-mongodb://USER:PASSWORD@host:27017/intranet?authSource=admin
+mongodb://USER:HASLO@home-stack_mongo-db:27017/intranet?authSource=admin
 ```
+
+Uwagi:
+- znaki specjalne w haśle URL-encode (`$` → `%24`, `@` → `%40`)
+- zwykle wymagane `authSource=admin`
+- baza `intranet` powstaje automatycznie przy pierwszym zapisie — nie trzeba jej tworzyć ręcznie
 
 lub Atlas:
 
 ```text
 mongodb+srv://USER:PASSWORD@cluster.mongodb.net/intranet?retryWrites=true&w=majority
 ```
-
 6. Deploy → otwórz domenę.
 
 Po pierwszym starcie ze seedem ustaw `SEED_ON_START=false`.

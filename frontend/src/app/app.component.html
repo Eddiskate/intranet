@@ -7,13 +7,26 @@
         <small>Szpital Rejonowy · Racibórz</small>
       </span>
     </a>
-    <nav>
-      <a routerLink="/helpdesk" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-        Zgłoszenia
-      </a>
-      <a routerLink="/helpdesk/dashboard" routerLinkActive="active">Dashboard</a>
-      <a routerLink="/helpdesk/users" routerLinkActive="active">Użytkownicy</a>
-    </nav>
+
+    <div class="topbar__right">
+      <nav>
+        <a routerLink="/helpdesk" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+          Zgłoszenia
+        </a>
+        <a routerLink="/helpdesk/dashboard" routerLinkActive="active">Dashboard</a>
+        <a routerLink="/helpdesk/users" routerLinkActive="active">Użytkownicy</a>
+      </nav>
+
+      <button
+        type="button"
+        class="theme-toggle"
+        (click)="theme.toggle()"
+        [attr.aria-label]="theme.mode() === 'dark' ? 'Włącz tryb jasny' : 'Włącz tryb ciemny'"
+        [title]="theme.mode() === 'dark' ? 'Tryb jasny' : 'Tryb ciemny'"
+      >
+        {{ theme.mode() === 'dark' ? 'Tryb jasny' : 'Tryb ciemny' }}
+      </button>
+    </div>
   </header>
 
   <main class="content">

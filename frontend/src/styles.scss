@@ -1,8 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap');
 
-:root {
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Source Sans 3', 'Segoe UI', sans-serif;
+:root,
+html[data-theme='light'] {
+  --font-display: 'Bricolage Grotesque', 'Avenir Next', sans-serif;
+  --font-body: 'Figtree', 'Avenir Next', sans-serif;
 
   --ink: #14231f;
   --ink-muted: #5b6f69;
@@ -15,8 +16,78 @@
   --teal-800: #115e59;
 
   --bg-1: #e8f3ef;
-  --bg-2: #f7f3ea;
+  --bg-2: #eef4f1;
   --bg-3: #d9ebe7;
+
+  --surface: rgba(255, 255, 255, 0.82);
+  --surface-strong: #ffffff;
+  --surface-soft: rgba(255, 255, 255, 0.55);
+  --border: rgba(15, 76, 70, 0.12);
+  --border-strong: rgba(15, 76, 70, 0.22);
+  --shadow: 0 10px 30px rgba(15, 40, 35, 0.06);
+  --topbar-bg: rgba(255, 255, 255, 0.55);
+  --nav-active-bg: rgba(204, 251, 241, 0.7);
+  --notice-bg: linear-gradient(145deg, #fff7ed, #ffedd5);
+  --notice-border: #fdba74;
+  --notice-ink: #9a3412;
+  --success-bg: linear-gradient(160deg, #ecfdf5, #f0fdfa);
+  --success-border: #99f6e4;
+  --error-bg: #fef2f2;
+  --error-ink: #b91c1c;
+  --badge-open-bg: #fef3c7;
+  --badge-open-ink: #92400e;
+  --badge-progress-bg: #dbeafe;
+  --badge-progress-ink: #1e40af;
+  --badge-resolved-bg: #d1fae5;
+  --badge-resolved-ink: #065f46;
+  --badge-closed-bg: #e5e7eb;
+  --badge-closed-ink: #374151;
+  --table-head-bg: rgba(240, 253, 250, 0.7);
+  --dropzone-bg: rgba(240, 253, 250, 0.45);
+  --dropzone-bg-active: rgba(204, 251, 241, 0.55);
+}
+
+html[data-theme='dark'] {
+  --ink: #e8f2ef;
+  --ink-muted: #9bb0a9;
+
+  --teal-50: #12332f;
+  --teal-100: #1a433e;
+  --teal-500: #2dd4bf;
+  --teal-600: #14b8a6;
+  --teal-700: #5eead4;
+  --teal-800: #99f6e4;
+
+  --bg-1: #0b1412;
+  --bg-2: #12201c;
+  --bg-3: #0f1a17;
+
+  --surface: rgba(22, 36, 32, 0.88);
+  --surface-strong: #1a2b26;
+  --surface-soft: rgba(22, 36, 32, 0.72);
+  --border: rgba(148, 210, 196, 0.16);
+  --border-strong: rgba(148, 210, 196, 0.28);
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  --topbar-bg: rgba(12, 22, 19, 0.78);
+  --nav-active-bg: rgba(20, 184, 166, 0.18);
+  --notice-bg: linear-gradient(145deg, #3a2414, #2a1a10);
+  --notice-border: #b45309;
+  --notice-ink: #fdba74;
+  --success-bg: linear-gradient(160deg, #0f2e26, #12332f);
+  --success-border: #115e59;
+  --error-bg: #3f1515;
+  --error-ink: #fca5a5;
+  --badge-open-bg: #422006;
+  --badge-open-ink: #fcd34d;
+  --badge-progress-bg: #1e3a5f;
+  --badge-progress-ink: #93c5fd;
+  --badge-resolved-bg: #064e3b;
+  --badge-resolved-ink: #6ee7b7;
+  --badge-closed-bg: #374151;
+  --badge-closed-ink: #d1d5db;
+  --table-head-bg: rgba(18, 51, 47, 0.7);
+  --dropzone-bg: rgba(18, 51, 47, 0.45);
+  --dropzone-bg-active: rgba(20, 184, 166, 0.18);
 }
 
 *,
@@ -33,9 +104,17 @@ body {
   color: var(--ink);
   background:
     radial-gradient(ellipse 80% 50% at 10% -10%, rgba(20, 184, 166, 0.18), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(180, 140, 90, 0.14), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(180, 140, 90, 0.12), transparent 50%),
     linear-gradient(165deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
   background-attachment: fixed;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+html[data-theme='dark'] body {
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(45, 212, 191, 0.1), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(180, 140, 90, 0.08), transparent 50%),
+    linear-gradient(165deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
 }
 
 body {
@@ -62,9 +141,9 @@ body {
   }
 
   &--primary {
-    background: linear-gradient(135deg, var(--teal-600), var(--teal-800));
+    background: linear-gradient(135deg, var(--teal-600), var(--teal-700));
     color: #fff;
-    box-shadow: 0 10px 22px rgba(15, 76, 70, 0.22);
+    box-shadow: var(--shadow);
 
     &:hover:not(:disabled) {
       transform: translateY(-1px);
@@ -72,12 +151,12 @@ body {
   }
 
   &--ghost {
-    background: rgba(255, 255, 255, 0.55);
-    border-color: rgba(15, 76, 70, 0.18);
+    background: var(--surface-soft);
+    border-color: var(--border-strong);
     color: var(--teal-800);
 
     &:hover:not(:disabled) {
-      background: #fff;
+      background: var(--surface-strong);
     }
   }
 }

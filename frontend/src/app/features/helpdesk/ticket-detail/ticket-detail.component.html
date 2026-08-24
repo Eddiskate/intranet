@@ -45,9 +45,17 @@
 
         @if (t.attachments?.length) {
           <h3>Załączniki</h3>
-          <ul>
+          <ul class="attachments">
             @for (file of t.attachments; track file.id) {
-              <li>{{ file.originalName }} ({{ (file.size / 1024) | number: '1.0-0' }} KB)</li>
+              <li>
+                <button type="button" class="attachment-link" (click)="openPreview(file)">
+                  <span class="attachment-link__name">{{ file.originalName }}</span>
+                  <span class="attachment-link__meta">
+                    {{ (file.size / 1024) | number: '1.0-0' }} KB
+                    · {{ isImage(file) ? 'podgląd' : isPdf(file) ? 'PDF' : 'otwórz' }}
+                  </span>
+                </button>
+              </li>
             }
           </ul>
         }
@@ -63,4 +71,34 @@
       </aside>
     </div>
   }
+}
+
+@if (preview(); as file) {
+  <div class="lightbox" (click)="closePreview()" role="dialog" aria-modal="true" [attr.aria-label]="'Podgląd: ' + file.originalName">
+    <div class="lightbox__panel" (click)="$event.stopPropagation()">
+      <header class="lightbox__head">
+        <div>
+          <strong>{{ file.originalName }}</strong>
+          <span>{{ (file.size / 1024) | number: '1.0-0' }} KB</span>
+        </div>
+        <div class="lightbox__actions">
+          <a class="btn btn--ghost" [href]="attachmentUrl(file)" target="_blank" rel="noopener">Otwórz w nowej karcie</a>
+          <button type="button" class="btn btn--ghost" (click)="closePreview()">Zamknij</button>
+        </div>
+      </header>
+
+      <div class="lightbox__body">
+        @if (isImage(file)) {
+          <img [src]="attachmentUrl(file)" [alt]="file.originalName" />
+        } @else if (isPdf(file)) {
+          <iframe [src]="safeAttachmentUrl(file)" title="Podgląd PDF"></iframe>
+        } @else {
+          <div class="lightbox__fallback">
+            <p>Podgląd tego typu pliku nie jest dostępny w przeglądarce.</p>
+            <a class="btn btn--primary" [href]="attachmentUrl(file)" [download]="file.originalName">Pobierz plik</a>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
 }

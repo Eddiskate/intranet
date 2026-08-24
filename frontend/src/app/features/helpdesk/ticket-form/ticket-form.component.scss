@@ -42,8 +42,8 @@
   gap: 1.1rem;
   max-width: 42rem;
   padding: 1.75rem;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(15, 76, 70, 0.1);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 18px;
   backdrop-filter: blur(8px);
 }
@@ -66,11 +66,11 @@
   select,
   textarea {
     width: 100%;
-    border: 1px solid rgba(15, 76, 70, 0.22);
+    border: 1px solid var(--border-strong);
     border-radius: 10px;
     padding: 0.7rem 0.85rem;
     font: inherit;
-    background: #fff;
+    background: var(--surface-strong);
     color: var(--ink);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
@@ -113,9 +113,9 @@
   gap: 0.25rem;
   min-height: 8.5rem;
   padding: 1.25rem;
-  border: 1.5px dashed rgba(15, 76, 70, 0.3);
+  border: 1.5px dashed var(--border-strong);
   border-radius: 14px;
-  background: rgba(240, 253, 250, 0.45);
+  background: var(--dropzone-bg);
   cursor: pointer;
   text-align: center;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
@@ -123,7 +123,7 @@
   &:hover,
   &--active {
     border-color: var(--teal-600);
-    background: rgba(204, 251, 241, 0.55);
+    background: var(--dropzone-bg-active);
     box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
   }
 }
@@ -161,8 +161,8 @@
     gap: 0.75rem;
     padding: 0.7rem 0.85rem;
     border-radius: 10px;
-    background: #fff;
-    border: 1px solid rgba(15, 76, 70, 0.12);
+    background: var(--surface-strong);
+    border: 1px solid var(--border);
 
     div {
       display: grid;
@@ -186,7 +186,7 @@
 .remove {
   border: 0;
   background: none;
-  color: #b91c1c;
+  color: var(--error-ink);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -200,8 +200,8 @@
 
 .banner-error,
 .state--error {
-  color: #b91c1c;
-  background: #fef2f2;
+  color: var(--error-ink);
+  background: var(--error-bg);
   border-radius: 10px;
   padding: 0.85rem 1rem;
   margin-bottom: 1rem;
@@ -214,8 +214,8 @@
 .success {
   padding: 2.5rem;
   border-radius: 18px;
-  background: linear-gradient(160deg, #ecfdf5, #f0fdfa);
-  border: 1px solid #99f6e4;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
   max-width: 36rem;
 
   h1 {

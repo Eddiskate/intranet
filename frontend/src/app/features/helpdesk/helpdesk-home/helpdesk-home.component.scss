@@ -49,11 +49,11 @@
 }
 
 .notice {
-  background: linear-gradient(145deg, #fff7ed, #ffedd5);
-  border: 1px solid #fdba74;
+  background: var(--notice-bg);
+  border: 1px solid var(--notice-border);
   border-radius: 16px;
   padding: 1.25rem 1.4rem;
-  color: #9a3412;
+  color: var(--notice-ink);
 
   strong {
     display: block;
@@ -84,9 +84,9 @@
   gap: 0.65rem;
   padding: 1.5rem;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(15, 76, 70, 0.12);
-  box-shadow: 0 10px 30px rgba(15, 40, 35, 0.06);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
   text-decoration: none;
   color: inherit;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -95,7 +95,7 @@
   &:hover {
     transform: translateY(-3px);
     border-color: var(--teal-500);
-    box-shadow: 0 16px 36px rgba(15, 76, 70, 0.12);
+    box-shadow: var(--shadow);
 
     .group-card__cta {
       color: var(--teal-700);
@@ -128,7 +128,7 @@
   height: 2.4rem;
   border-radius: 10px;
   background: var(--card-accent, var(--teal-100));
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 
 .group-card.accent-it {
@@ -144,13 +144,35 @@
   --card-accent: #e8e0d4;
 }
 
+:host-context(html[data-theme='dark']) {
+  .group-card.accent-it {
+    --card-accent: #1a433e;
+  }
+  .group-card.accent-med {
+    --card-accent: #1e3348;
+  }
+  .group-card.accent-phone {
+    --card-accent: #322840;
+  }
+  .group-card.accent-tech {
+    --card-accent: #3a3226;
+  }
+}
+
 .group-card__count {
   font-size: 0.8rem;
-  color: var(--teal-700);
-  background: var(--teal-50);
-  padding: 0.25rem 0.6rem;
+  color: #fff;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  padding: 0.28rem 0.7rem;
   border-radius: 999px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.35), 0 6px 14px rgba(185, 28, 28, 0.35);
+}
+
+:host-context(html[data-theme='dark']) .group-card__count {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.35), 0 8px 18px rgba(220, 38, 38, 0.35);
 }
 
 .group-card__people {
@@ -184,8 +206,8 @@
   color: var(--ink-muted);
 
   &--error {
-    color: #b91c1c;
-    background: #fef2f2;
+    color: var(--error-ink);
+    background: var(--error-bg);
     border-radius: 12px;
   }
 }

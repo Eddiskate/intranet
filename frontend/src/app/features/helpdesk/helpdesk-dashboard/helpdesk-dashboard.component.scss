@@ -50,11 +50,12 @@
 
   select {
     min-width: 14rem;
-    border: 1px solid rgba(15, 76, 70, 0.22);
+    border: 1px solid var(--border-strong);
     border-radius: 10px;
     padding: 0.55rem 0.7rem;
     font: inherit;
-    background: #fff;
+    background: var(--surface-strong);
+    color: var(--ink);
   }
 }
 
@@ -62,8 +63,8 @@
   margin-bottom: 1.25rem;
   padding: 0.85rem 1rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(15, 76, 70, 0.1);
+  background: var(--surface);
+  border: 1px solid var(--border);
   color: var(--ink-muted);
 
   strong {
@@ -74,8 +75,8 @@
 .table-wrap {
   overflow-x: auto;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(15, 76, 70, 0.1);
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 table {
@@ -87,7 +88,7 @@ table {
   td {
     text-align: left;
     padding: 0.85rem 1rem;
-    border-bottom: 1px solid rgba(15, 76, 70, 0.08);
+    border-bottom: 1px solid var(--border);
     vertical-align: middle;
   }
 
@@ -96,7 +97,7 @@ table {
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--ink-muted);
-    background: rgba(240, 253, 250, 0.7);
+    background: var(--table-head-bg);
   }
 
   a {
@@ -118,29 +119,30 @@ table {
   font-weight: 700;
 
   &[data-status='OPEN'] {
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--badge-open-bg);
+    color: var(--badge-open-ink);
   }
   &[data-status='IN_PROGRESS'] {
-    background: #dbeafe;
-    color: #1e40af;
+    background: var(--badge-progress-bg);
+    color: var(--badge-progress-ink);
   }
   &[data-status='RESOLVED'] {
-    background: #d1fae5;
-    color: #065f46;
+    background: var(--badge-resolved-bg);
+    color: var(--badge-resolved-ink);
   }
   &[data-status='CLOSED'] {
-    background: #e5e7eb;
-    color: #374151;
+    background: var(--badge-closed-bg);
+    color: var(--badge-closed-ink);
   }
 }
 
 .actions select {
-  border: 1px solid rgba(15, 76, 70, 0.2);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 0.35rem 0.45rem;
   font: inherit;
-  background: #fff;
+  background: var(--surface-strong);
+  color: var(--ink);
 }
 
 .state {
@@ -148,6 +150,6 @@ table {
   padding: 1.5rem 0;
 
   &--error {
-    color: #b91c1c;
+    color: var(--error-ink);
   }
 }
