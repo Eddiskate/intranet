@@ -5,89 +5,91 @@ html[data-theme='light'] {
   --font-display: 'Bricolage Grotesque', 'Avenir Next', sans-serif;
   --font-body: 'Figtree', 'Avenir Next', sans-serif;
 
-  --ink: #14231f;
-  --ink-muted: #5b6f69;
+  --ink: #121212;
+  --ink-muted: #5c5c5c;
 
-  --teal-50: #f0fdfa;
-  --teal-100: #ccfbf1;
-  --teal-500: #14b8a6;
-  --teal-600: #0d9488;
-  --teal-700: #0f766e;
-  --teal-800: #115e59;
+  /* Akcent: grafit / odcienie czerni */
+  --teal-50: #f4f4f5;
+  --teal-100: #e4e4e7;
+  --teal-500: #52525b;
+  --teal-600: #3f3f46;
+  --teal-700: #27272a;
+  --teal-800: #18181b;
 
-  --bg-1: #e8f3ef;
-  --bg-2: #eef4f1;
-  --bg-3: #d9ebe7;
+  --bg-1: #f3f3f3;
+  --bg-2: #ececec;
+  --bg-3: #e2e2e2;
 
-  --surface: rgba(255, 255, 255, 0.82);
+  --surface: rgba(255, 255, 255, 0.88);
   --surface-strong: #ffffff;
-  --surface-soft: rgba(255, 255, 255, 0.55);
-  --border: rgba(15, 76, 70, 0.12);
-  --border-strong: rgba(15, 76, 70, 0.22);
-  --shadow: 0 10px 30px rgba(15, 40, 35, 0.06);
-  --topbar-bg: rgba(255, 255, 255, 0.55);
-  --nav-active-bg: rgba(204, 251, 241, 0.7);
+  --surface-soft: rgba(255, 255, 255, 0.62);
+  --border: rgba(24, 24, 27, 0.12);
+  --border-strong: rgba(24, 24, 27, 0.22);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --topbar-bg: rgba(255, 255, 255, 0.72);
+  --nav-active-bg: rgba(24, 24, 27, 0.08);
   --notice-bg: linear-gradient(145deg, #fff7ed, #ffedd5);
   --notice-border: #fdba74;
   --notice-ink: #9a3412;
-  --success-bg: linear-gradient(160deg, #ecfdf5, #f0fdfa);
-  --success-border: #99f6e4;
+  --success-bg: linear-gradient(160deg, #f4f4f5, #fafafa);
+  --success-border: #d4d4d8;
   --error-bg: #fef2f2;
   --error-ink: #b91c1c;
   --badge-open-bg: #fef3c7;
   --badge-open-ink: #92400e;
-  --badge-progress-bg: #dbeafe;
-  --badge-progress-ink: #1e40af;
-  --badge-resolved-bg: #d1fae5;
-  --badge-resolved-ink: #065f46;
+  --badge-progress-bg: #e4e4e7;
+  --badge-progress-ink: #27272a;
+  --badge-resolved-bg: #dcfce7;
+  --badge-resolved-ink: #166534;
   --badge-closed-bg: #e5e7eb;
   --badge-closed-ink: #374151;
-  --table-head-bg: rgba(240, 253, 250, 0.7);
-  --dropzone-bg: rgba(240, 253, 250, 0.45);
-  --dropzone-bg-active: rgba(204, 251, 241, 0.55);
+  --table-head-bg: rgba(244, 244, 245, 0.9);
+  --dropzone-bg: rgba(244, 244, 245, 0.7);
+  --dropzone-bg-active: rgba(228, 228, 231, 0.9);
 }
 
 html[data-theme='dark'] {
-  --ink: #e8f2ef;
-  --ink-muted: #9bb0a9;
+  --ink: #f4f4f5;
+  --ink-muted: #a1a1aa;
 
-  --teal-50: #12332f;
-  --teal-100: #1a433e;
-  --teal-500: #2dd4bf;
-  --teal-600: #14b8a6;
-  --teal-700: #5eead4;
-  --teal-800: #99f6e4;
+  /* Akcent na ciemnym tle: jasny grafit / srebro */
+  --teal-50: #27272a;
+  --teal-100: #3f3f46;
+  --teal-500: #a1a1aa;
+  --teal-600: #d4d4d8;
+  --teal-700: #e4e4e7;
+  --teal-800: #fafafa;
 
-  --bg-1: #0b1412;
-  --bg-2: #12201c;
-  --bg-3: #0f1a17;
+  --bg-1: #0a0a0a;
+  --bg-2: #111111;
+  --bg-3: #0d0d0d;
 
-  --surface: rgba(22, 36, 32, 0.88);
-  --surface-strong: #1a2b26;
-  --surface-soft: rgba(22, 36, 32, 0.72);
-  --border: rgba(148, 210, 196, 0.16);
-  --border-strong: rgba(148, 210, 196, 0.28);
-  --shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-  --topbar-bg: rgba(12, 22, 19, 0.78);
-  --nav-active-bg: rgba(20, 184, 166, 0.18);
+  --surface: rgba(24, 24, 27, 0.92);
+  --surface-strong: #18181b;
+  --surface-soft: rgba(24, 24, 27, 0.78);
+  --border: rgba(244, 244, 245, 0.12);
+  --border-strong: rgba(244, 244, 245, 0.22);
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --topbar-bg: rgba(10, 10, 10, 0.82);
+  --nav-active-bg: rgba(244, 244, 245, 0.1);
   --notice-bg: linear-gradient(145deg, #3a2414, #2a1a10);
   --notice-border: #b45309;
   --notice-ink: #fdba74;
-  --success-bg: linear-gradient(160deg, #0f2e26, #12332f);
-  --success-border: #115e59;
+  --success-bg: linear-gradient(160deg, #18181b, #27272a);
+  --success-border: #3f3f46;
   --error-bg: #3f1515;
   --error-ink: #fca5a5;
   --badge-open-bg: #422006;
   --badge-open-ink: #fcd34d;
-  --badge-progress-bg: #1e3a5f;
-  --badge-progress-ink: #93c5fd;
-  --badge-resolved-bg: #064e3b;
-  --badge-resolved-ink: #6ee7b7;
-  --badge-closed-bg: #374151;
-  --badge-closed-ink: #d1d5db;
-  --table-head-bg: rgba(18, 51, 47, 0.7);
-  --dropzone-bg: rgba(18, 51, 47, 0.45);
-  --dropzone-bg-active: rgba(20, 184, 166, 0.18);
+  --badge-progress-bg: #27272a;
+  --badge-progress-ink: #e4e4e7;
+  --badge-resolved-bg: #14532d;
+  --badge-resolved-ink: #86efac;
+  --badge-closed-bg: #3f3f46;
+  --badge-closed-ink: #d4d4d8;
+  --table-head-bg: rgba(39, 39, 42, 0.85);
+  --dropzone-bg: rgba(39, 39, 42, 0.55);
+  --dropzone-bg-active: rgba(63, 63, 70, 0.55);
 }
 
 *,
@@ -103,8 +105,8 @@ body {
   font-family: var(--font-body);
   color: var(--ink);
   background:
-    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(20, 184, 166, 0.18), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(180, 140, 90, 0.12), transparent 50%),
+    radial-gradient(ellipse 70% 45% at 8% -8%, rgba(63, 63, 70, 0.22), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 100% 0%, rgba(24, 24, 27, 0.35), transparent 50%),
     linear-gradient(165deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
   background-attachment: fixed;
   transition: color 0.2s ease, background 0.2s ease;
@@ -112,8 +114,8 @@ body {
 
 html[data-theme='dark'] body {
   background:
-    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(45, 212, 191, 0.1), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(180, 140, 90, 0.08), transparent 50%),
+    radial-gradient(ellipse 70% 45% at 8% -8%, rgba(82, 82, 91, 0.18), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 100% 0%, rgba(0, 0, 0, 0.55), transparent 50%),
     linear-gradient(165deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
 }
 
@@ -141,8 +143,8 @@ body {
   }
 
   &--primary {
-    background: linear-gradient(135deg, var(--teal-600), var(--teal-700));
-    color: #fff;
+    background: linear-gradient(135deg, #27272a, #09090b);
+    color: #fafafa;
     box-shadow: var(--shadow);
 
     &:hover:not(:disabled) {
@@ -159,4 +161,10 @@ body {
       background: var(--surface-strong);
     }
   }
+}
+
+html[data-theme='dark'] .btn--primary {
+  background: linear-gradient(135deg, #3f3f46, #18181b);
+  color: #fafafa;
+  border: 1px solid rgba(244, 244, 245, 0.18);
 }

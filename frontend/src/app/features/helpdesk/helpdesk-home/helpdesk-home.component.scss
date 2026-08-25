@@ -132,30 +132,30 @@
 }
 
 .group-card.accent-it {
-  --card-accent: #cce8e4;
+  --card-accent: #e4e4e7;
 }
 .group-card.accent-med {
-  --card-accent: #d7e4f5;
+  --card-accent: #d4d4d8;
 }
 .group-card.accent-phone {
-  --card-accent: #e8dff0;
+  --card-accent: #c7c7cc;
 }
 .group-card.accent-tech {
-  --card-accent: #e8e0d4;
+  --card-accent: #a1a1aa;
 }
 
 :host-context(html[data-theme='dark']) {
   .group-card.accent-it {
-    --card-accent: #1a433e;
+    --card-accent: #3f3f46;
   }
   .group-card.accent-med {
-    --card-accent: #1e3348;
+    --card-accent: #52525b;
   }
   .group-card.accent-phone {
-    --card-accent: #322840;
+    --card-accent: #27272a;
   }
   .group-card.accent-tech {
-    --card-accent: #3a3226;
+    --card-accent: #18181b;
   }
 }
 
