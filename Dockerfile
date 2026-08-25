@@ -1,58 +1,59 @@
-# syntax=docker/dockerfile:1
+# Budowanie SEKWENCYJNE (frontend → backend → runtime),
+# żeby EasyPanel nie odpalał 3 ciężkich etapów naraz i nie wisiał godzinami.
 
-# ── Frontend (Angular) ──────────────────────────────────────────────
-FROM node:22-bookworm-slim AS frontend-build
+ARG NPM_FLAGS="--no-audit --no-fund --fetch-retries=3 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000"
+
+# ── 1) Frontend (Angular) ───────────────────────────────────────────
+FROM node:22-bookworm AS frontend-build
+ARG NPM_FLAGS
 WORKDIR /app/frontend
 
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+RUN npm ci ${NPM_FLAGS}
 
 COPY frontend/ ./
 RUN npm run build -- --configuration=production
 
-# ── Backend (Node + Prisma) ─────────────────────────────────────────
-FROM node:22-bookworm-slim AS backend-build
+# ── 2) Backend (czeka na frontend — sekwencja) ──────────────────────
+FROM node:22-bookworm AS backend-build
+ARG NPM_FLAGS
 WORKDIR /app/backend
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+# Sztuczna zależność: etap startuje dopiero po zbudowaniu FE
+COPY --from=frontend-build /app/frontend/dist/frontend/browser /tmp/frontend-public
 
 COPY backend/package.json backend/package-lock.json ./
-RUN npm ci
+RUN npm ci ${NPM_FLAGS}
 
 COPY backend/ ./
 RUN npx prisma generate \
-  && npm run build
+  && npm run build \
+  && npm prune --omit=dev \
+  && rm -rf /tmp/frontend-public
 
-# ── Runtime ─────────────────────────────────────────────────────────
-FROM node:22-bookworm-slim AS runtime
+# ── 3) Runtime ──────────────────────────────────────────────────────
+FROM node:22-bookworm AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production \
     PORT=3000 \
     DATA_DIR=/data \
     UPLOADS_DIR=/data/uploads \
-    SEED_ON_START=false
+    SEED_ON_START=false \
+    NPM_CONFIG_UPDATE_NOTIFIER=false
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/* \
-  && mkdir -p /data/uploads
+RUN mkdir -p /data/uploads
 
-COPY backend/package.json backend/package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
-
+COPY --from=backend-build /app/backend/package.json ./package.json
+COPY --from=backend-build /app/backend/node_modules ./node_modules
 COPY --from=backend-build /app/backend/dist ./dist
 COPY --from=backend-build /app/backend/prisma ./prisma
 COPY --from=frontend-build /app/frontend/dist/frontend/browser ./public
 COPY docker/entrypoint.sh /entrypoint.sh
 
-RUN npx prisma generate \
-  && chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 3000
-
 VOLUME ["/data"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \

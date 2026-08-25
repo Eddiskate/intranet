@@ -22,3 +22,6 @@
 frontend/dist
 backend/dist
 backend/generated
+frontend/.vscode
+**/*.log
+**/npm-debug.log*
