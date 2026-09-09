@@ -43,6 +43,22 @@ const agents: Array<{
 ];
 
 export async function seedDefaults(prisma: PrismaClient = new PrismaClient()) {
+  try {
+    return await runSeed(prisma);
+  } catch (err: unknown) {
+    const code = typeof err === 'object' && err && 'code' in err ? String((err as { code: string }).code) : '';
+    if (code === 'P2031') {
+      throw new Error(
+        'MongoDB nie jest replica setem (Prisma P2031). ' +
+          'Na EasyPanel uruchom mongod z --replSet rs0, zrób rs.initiate(...), ' +
+          'dopisz &replicaSet=rs0 do DATABASE_URL i zrestartuj aplikację.'
+      );
+    }
+    throw err;
+  }
+}
+
+async function runSeed(prisma: PrismaClient) {
   const bySlug: Record<string, { id: string }> = {};
 
   for (const group of groups) {
