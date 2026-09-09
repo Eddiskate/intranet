@@ -67,16 +67,25 @@ mongodb+srv://USER:PASSWORD@cluster.mongodb.net/intranet?retryWrites=true&w=majo
 
 Po pierwszym starcie ze seedem ustaw `SEED_ON_START=false`.
 
-### Lokalnie z compose
+### Maile (SMTP)
 
-```bash
-docker compose up --build
-# http://localhost:3000
-```
+Przy utworzeniu zgłoszenia wysyłane są **2 maile**:
+1. do zgłaszającego — potwierdzenie + link do zgłoszenia
+2. do agentów grupy — powiadomienie o nowym zgłoszeniu
+
+| Zmienna | Opis |
+|---|---|
+| `APP_URL` | Publiczny URL aplikacji (linki w mailach), np. `https://intranet.example.pl` |
+| `SMTP_HOST` | Serwer SMTP (bez tego maile są pomijane) |
+| `SMTP_PORT` | np. `587` |
+| `SMTP_SECURE` | `true` dla 465 |
+| `SMTP_USER` / `SMTP_PASS` | Logowanie SMTP |
+| `SMTP_FROM` | Nadawca, np. `Helpdesk <helpdesk@szpital.local>` |
 
 ## Moduł helpdesk
 
-- 4 grupy zgłoszeń (Informatyka, Aparatura medyczna, Telefony i kontrola dostępu, Dział Techniczny)
-- Użytkownicy: imię, nazwisko, dział (select), przypisanie do grup
+- 4 grupy zgłoszeń + domyślni agenci
+- Workers: auto-dodawanie zgłaszającego (imię, nazwisko, email, telefon) przy nowym zgłoszeniu
+- Komentarze do zgłoszenia (e-mail autora wymagany), najnowsze u góry
 - Formularz zgłoszenia z polami z legacy systemu
 - Dashboard agenta: tylko zgłoszenia z przypisanych grup

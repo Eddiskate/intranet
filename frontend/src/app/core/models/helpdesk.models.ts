@@ -25,6 +25,16 @@ export interface User {
   groups?: GroupMember[];
 }
 
+export interface Worker {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 
 export interface Attachment {
@@ -35,9 +45,19 @@ export interface Attachment {
   size: number;
 }
 
+export interface TicketComment {
+  id: string;
+  ticketId: string;
+  authorEmail: string;
+  authorName?: string | null;
+  body: string;
+  createdAt: string;
+}
+
 export interface Ticket {
   id: string;
   groupId: string;
+  assigneeId?: string | null;
   requesterName: string;
   requesterEmail: string;
   organizationalUnit: string;
@@ -50,7 +70,10 @@ export interface Ticket {
   createdAt: string;
   updatedAt: string;
   group?: TicketGroup;
+  assignee?: User | null;
   attachments?: Attachment[];
+  comments?: TicketComment[];
+  _count?: { comments: number };
 }
 
 export interface CreateTicketPayload {
@@ -64,4 +87,10 @@ export interface CreateTicketPayload {
   body: string;
   computerIp?: string;
   attachments?: File[];
+}
+
+export interface CreateCommentPayload {
+  authorEmail: string;
+  authorName?: string;
+  body: string;
 }

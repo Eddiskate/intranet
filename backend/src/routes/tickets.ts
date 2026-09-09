@@ -5,6 +5,8 @@ import fs from 'fs';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { ORGANIZATIONAL_UNITS } from '../data/departments';
+import { ensureWorker } from '../lib/workers';
+import { sendCommentNotification, sendTicketCreatedEmails } from '../lib/mail';
 
 const router = Router();
 
@@ -35,6 +37,34 @@ const ticketSchema = z.object({
   body: z.string().min(1),
   computerIp: z.string().optional().nullable(),
 });
+
+const commentSchema = z.object({
+  authorEmail: z.string().email(),
+  authorName: z.string().optional().nullable(),
+  body: z.string().min(1),
+});
+
+const ticketListInclude = {
+  group: {
+    include: {
+      members: { include: { user: true } },
+    },
+  },
+  assignee: true,
+  attachments: true,
+  _count: { select: { comments: true } },
+} as const;
+
+const ticketDetailInclude = {
+  group: {
+    include: {
+      members: { include: { user: true } },
+    },
+  },
+  assignee: true,
+  attachments: true,
+  comments: { orderBy: { createdAt: 'desc' as const } },
+};
 
 router.get('/meta/organizational-units', (_req, res) => {
   res.json(ORGANIZATIONAL_UNITS);
@@ -70,10 +100,7 @@ router.get('/', async (req, res) => {
         ? { status: status as 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' }
         : {}),
     },
-    include: {
-      group: true,
-      attachments: true,
-    },
+    include: ticketListInclude,
     orderBy: { createdAt: 'desc' },
   });
 
@@ -83,14 +110,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const ticket = await prisma.ticket.findUnique({
     where: { id: req.params.id },
-    include: {
-      group: {
-        include: {
-          members: { include: { user: true } },
-        },
-      },
-      attachments: true,
-    },
+    include: ticketDetailInclude,
   });
 
   if (!ticket) {
@@ -102,7 +122,12 @@ router.get('/:id', async (req, res) => {
 });
 
 router.post('/', upload.array('attachments', 5), async (req, res) => {
-  const parsed = ticketSchema.safeParse(req.body);
+  const parsed = ticketSchema.safeParse({
+    ...req.body,
+    requesterEmail: typeof req.body.requesterEmail === 'string'
+      ? req.body.requesterEmail.trim().toLowerCase()
+      : req.body.requesterEmail,
+  });
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
     return;
@@ -110,11 +135,18 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
 
   const group = await prisma.ticketGroup.findUnique({
     where: { id: parsed.data.groupId },
+    include: { members: { include: { user: true } } },
   });
   if (!group) {
     res.status(400).json({ error: 'Nieprawidłowa grupa zgłoszeń' });
     return;
   }
+
+  await ensureWorker({
+    fullName: parsed.data.requesterName,
+    email: parsed.data.requesterEmail,
+    phone: parsed.data.phone,
+  });
 
   const files = (req.files as Express.Multer.File[]) ?? [];
 
@@ -133,8 +165,24 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
     },
     include: {
       group: true,
+      assignee: true,
       attachments: true,
+      comments: { orderBy: { createdAt: 'desc' } },
     },
+  });
+
+  const agentEmails = group.members
+    .map((m) => m.user?.email)
+    .filter((e): e is string => Boolean(e));
+
+  // Maile nie blokują odpowiedzi API
+  void sendTicketCreatedEmails({
+    ticketId: ticket.id,
+    subject: ticket.subject,
+    groupName: group.name,
+    requesterName: ticket.requesterName,
+    requesterEmail: ticket.requesterEmail,
+    agentEmails,
   });
 
   res.status(201).json(ticket);
@@ -156,12 +204,127 @@ router.patch('/:id/status', async (req, res) => {
     const ticket = await prisma.ticket.update({
       where: { id: req.params.id },
       data: { status: parsed.data.status },
-      include: { group: true, attachments: true },
+      include: ticketDetailInclude,
     });
     res.json(ticket);
   } catch {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
   }
+});
+
+router.patch('/:id/assignee', async (req, res) => {
+  const parsed = z
+    .object({
+      assigneeId: z.string().nullable(),
+    })
+    .safeParse(req.body);
+
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+
+  const existing = await prisma.ticket.findUnique({
+    where: { id: req.params.id },
+    include: { group: { include: { members: true } } },
+  });
+
+  if (!existing) {
+    res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
+    return;
+  }
+
+  const assigneeId = parsed.data.assigneeId;
+
+  if (assigneeId) {
+    const isMember = existing.group.members.some((m) => m.userId === assigneeId);
+    if (!isMember) {
+      res.status(400).json({ error: 'Można przypisać tylko osobę z grupy zgłoszenia' });
+      return;
+    }
+  }
+
+  const ticket = await prisma.ticket.update({
+    where: { id: existing.id },
+    data: { assigneeId },
+    include: ticketDetailInclude,
+  });
+
+  res.json(ticket);
+});
+
+router.get('/:id/comments', async (req, res) => {
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: req.params.id },
+    select: { id: true },
+  });
+  if (!ticket) {
+    res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
+    return;
+  }
+
+  const comments = await prisma.comment.findMany({
+    where: { ticketId: ticket.id },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json(comments);
+});
+
+router.post('/:id/comments', async (req, res) => {
+  const parsed = commentSchema.safeParse({
+    ...req.body,
+    authorEmail:
+      typeof req.body.authorEmail === 'string'
+        ? req.body.authorEmail.trim().toLowerCase()
+        : req.body.authorEmail,
+  });
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: req.params.id },
+    include: {
+      group: { include: { members: { include: { user: true } } } },
+    },
+  });
+  if (!ticket) {
+    res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
+    return;
+  }
+
+  const authorName = parsed.data.authorName?.trim() || null;
+
+  await ensureWorker({
+    fullName: authorName || parsed.data.authorEmail.split('@')[0],
+    email: parsed.data.authorEmail,
+    phone: '',
+  });
+
+  const comment = await prisma.comment.create({
+    data: {
+      ticketId: ticket.id,
+      authorEmail: parsed.data.authorEmail,
+      authorName,
+      body: parsed.data.body.trim(),
+    },
+  });
+
+  const agentEmails = ticket.group.members
+    .map((m) => m.user?.email)
+    .filter((e): e is string => Boolean(e));
+
+  void sendCommentNotification({
+    ticketId: ticket.id,
+    subject: ticket.subject,
+    authorEmail: comment.authorEmail,
+    authorName: comment.authorName,
+    body: comment.body,
+    recipients: [ticket.requesterEmail, ...agentEmails],
+  });
+
+  res.status(201).json(comment);
 });
 
 export default router;

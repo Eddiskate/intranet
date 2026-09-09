@@ -3,11 +3,14 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  CreateCommentPayload,
   CreateTicketPayload,
   Ticket,
+  TicketComment,
   TicketGroup,
   TicketStatus,
   User,
+  Worker,
 } from '../models/helpdesk.models';
 
 @Injectable({ providedIn: 'root' })
@@ -107,5 +110,21 @@ export class HelpdeskApiService {
 
   updateTicketStatus(id: string, status: TicketStatus): Observable<Ticket> {
     return this.http.patch<Ticket>(`${this.base}/tickets/${id}/status`, { status });
+  }
+
+  assignTicket(id: string, assigneeId: string | null): Observable<Ticket> {
+    return this.http.patch<Ticket>(`${this.base}/tickets/${id}/assignee`, { assigneeId });
+  }
+
+  getComments(ticketId: string): Observable<TicketComment[]> {
+    return this.http.get<TicketComment[]>(`${this.base}/tickets/${ticketId}/comments`);
+  }
+
+  addComment(ticketId: string, payload: CreateCommentPayload): Observable<TicketComment> {
+    return this.http.post<TicketComment>(`${this.base}/tickets/${ticketId}/comments`, payload);
+  }
+
+  getWorkers(): Observable<Worker[]> {
+    return this.http.get<Worker[]>(`${this.base}/workers`);
   }
 }

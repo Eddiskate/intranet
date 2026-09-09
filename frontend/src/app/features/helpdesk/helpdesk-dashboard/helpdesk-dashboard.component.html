@@ -5,7 +5,7 @@
     <p class="eyebrow">Panel agenta</p>
     <h1>Dashboard helpdesku</h1>
     <p class="muted">
-      Widzisz zgłoszenia z grup, do których jesteś przypisany.
+      Widzisz wszystkie zgłoszenia z Twoich grup. Możesz przypisać sprawę do konkretnej osoby.
     </p>
   </div>
 
@@ -60,7 +60,7 @@
           <th>Grupa</th>
           <th>Temat</th>
           <th>Zgłaszający</th>
-          <th>Komórka</th>
+          <th>Przypisane do</th>
           <th>Status</th>
           <th></th>
         </tr>
@@ -74,7 +74,17 @@
               <a [routerLink]="['/helpdesk/tickets', ticket.id]">{{ ticket.subject }}</a>
             </td>
             <td>{{ ticket.requesterName }}</td>
-            <td>{{ ticket.organizationalUnit }}</td>
+            <td class="actions">
+              <select
+                [ngModel]="ticket.assigneeId || ''"
+                (ngModelChange)="setAssignee(ticket, $event)"
+              >
+                <option value="">Nieprzypisane</option>
+                @for (member of groupMembers(ticket); track member.id) {
+                  <option [value]="member.id">{{ displayName(member) }}</option>
+                }
+              </select>
+            </td>
             <td>
               <span class="badge" [attr.data-status]="ticket.status">
                 {{ statusLabels[ticket.status] }}

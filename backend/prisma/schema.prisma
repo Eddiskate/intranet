@@ -30,7 +30,8 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  groups GroupMember[]
+  groups           GroupMember[]
+  assignedTickets  Ticket[]      @relation("TicketAssignee")
 }
 
 model TicketGroup {
@@ -59,6 +60,7 @@ model GroupMember {
 model Ticket {
   id                 String       @id @default(auto()) @map("_id") @db.ObjectId
   groupId            String       @db.ObjectId
+  assigneeId         String?      @db.ObjectId
   requesterName      String
   requesterEmail     String
   organizationalUnit String
@@ -72,7 +74,9 @@ model Ticket {
   updatedAt          DateTime     @updatedAt
 
   group       TicketGroup  @relation(fields: [groupId], references: [id])
+  assignee    User?        @relation("TicketAssignee", fields: [assigneeId], references: [id])
   attachments Attachment[]
+  comments    Comment[]
 }
 
 model Attachment {
@@ -83,6 +87,29 @@ model Attachment {
   mimeType     String
   size         Int
   createdAt    DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+}
+
+/** Pracownicy / zgłaszający — auto-dodawani przy tworzeniu zgłoszenia */
+model Worker {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  firstName String
+  lastName  String
+  email     String   @unique
+  phone     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/** Komentarze do zgłoszenia — autor identyfikowany mailem */
+model Comment {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  ticketId    String   @db.ObjectId
+  authorEmail String
+  authorName  String?
+  body        String
+  createdAt   DateTime @default(now())
 
   ticket Ticket @relation(fields: [ticketId], references: [id])
 }

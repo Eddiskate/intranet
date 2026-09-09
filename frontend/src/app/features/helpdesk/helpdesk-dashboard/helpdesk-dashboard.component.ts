@@ -85,12 +85,25 @@ export class HelpdeskDashboardComponent implements OnInit {
 
   setStatus(ticket: Ticket, status: TicketStatus): void {
     this.api.updateTicketStatus(ticket.id, status).subscribe({
-      next: (updated) => {
-        this.tickets.update((list) =>
-          list.map((t) => (t.id === updated.id ? updated : t))
-        );
-      },
+      next: (updated) => this.replaceTicket(updated),
     });
+  }
+
+  setAssignee(ticket: Ticket, assigneeId: string): void {
+    const value = assigneeId || null;
+    this.api.assignTicket(ticket.id, value).subscribe({
+      next: (updated) => this.replaceTicket(updated),
+    });
+  }
+
+  groupMembers(ticket: Ticket): User[] {
+    return (ticket.group?.members || [])
+      .map((m) => m.user)
+      .filter((u): u is User => Boolean(u));
+  }
+
+  private replaceTicket(updated: Ticket): void {
+    this.tickets.update((list) => list.map((t) => (t.id === updated.id ? updated : t)));
   }
 
   groupLabel(user: User): string {

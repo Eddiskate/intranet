@@ -15,21 +15,81 @@
           <span class="badge" [attr.data-status]="t.status">{{ statusLabels[t.status] }}</span>
         </p>
       </div>
-      <label class="status-control">
-        Zmień status
-        <select [ngModel]="t.status" (ngModelChange)="setStatus($event)">
-          <option value="OPEN">Otwarte</option>
-          <option value="IN_PROGRESS">W trakcie</option>
-          <option value="RESOLVED">Rozwiązane</option>
-          <option value="CLOSED">Zamknięte</option>
-        </select>
-      </label>
+      <div class="header-controls">
+        <label class="status-control">
+          Przypisz zgłoszenie do
+          <select
+            [ngModel]="t.assigneeId || ''"
+            (ngModelChange)="setAssignee($event)"
+          >
+            <option value="">Nieprzypisane</option>
+            @for (member of groupMembers(t); track member.id) {
+              <option [value]="member.id">{{ member.firstName }} {{ member.lastName }}</option>
+            }
+          </select>
+        </label>
+        <label class="status-control">
+          Zmień status
+          <select [ngModel]="t.status" (ngModelChange)="setStatus($event)">
+            <option value="OPEN">Otwarte</option>
+            <option value="IN_PROGRESS">W trakcie</option>
+            <option value="RESOLVED">Rozwiązane</option>
+            <option value="CLOSED">Zamknięte</option>
+          </select>
+        </label>
+      </div>
     </header>
 
     <div class="grid">
       <section class="panel">
         <h2>Treść</h2>
         <p class="body">{{ t.body }}</p>
+
+        <div class="comments">
+          <h3>Komentarze</h3>
+
+          <form class="comment-form" [formGroup]="commentForm" (ngSubmit)="submitComment()">
+            <div class="comment-form__row">
+              <div class="field">
+                <label for="authorName">Imię i nazwisko</label>
+                <input id="authorName" type="text" formControlName="authorName" placeholder="opcjonalnie" />
+              </div>
+              <div class="field">
+                <label for="authorEmail">E-mail <span>*</span></label>
+                <input id="authorEmail" type="email" formControlName="authorEmail" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="commentBody">Treść komentarza <span>*</span></label>
+              <textarea id="commentBody" rows="4" formControlName="body" placeholder="Napisz komentarz…"></textarea>
+            </div>
+            @if (commentError()) {
+              <p class="banner-error">{{ commentError() }}</p>
+            }
+            <button class="btn btn--primary" type="submit" [disabled]="commentSending()">
+              {{ commentSending() ? 'Wysyłanie…' : 'Dodaj komentarz' }}
+            </button>
+          </form>
+
+          @if (!comments().length) {
+            <p class="muted">Brak komentarzy — napisz pierwszy.</p>
+          } @else {
+            <ul class="comment-list">
+              @for (c of comments(); track c.id) {
+                <li>
+                  <header>
+                    <strong>{{ c.authorName || c.authorEmail }}</strong>
+                    <span>{{ c.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+                  </header>
+                  @if (c.authorName) {
+                    <div class="comment-email">{{ c.authorEmail }}</div>
+                  }
+                  <p>{{ c.body }}</p>
+                </li>
+              }
+            </ul>
+          }
+        </div>
       </section>
 
       <aside class="panel">
