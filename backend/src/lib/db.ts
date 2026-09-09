@@ -45,16 +45,49 @@ export async function disconnectDb(): Promise<void> {
   }
 }
 
+function sameKeyPattern(
+  existing: Record<string, unknown>,
+  wanted: Record<string, 1 | -1>
+): boolean {
+  const a = Object.keys(existing);
+  const b = Object.keys(wanted);
+  if (a.length !== b.length) return false;
+  return b.every((k) => existing[k] === wanted[k]);
+}
+
+async function ensureIndex(
+  collection: Collection,
+  keys: Record<string, 1 | -1>,
+  options: { unique?: boolean; name?: string } = {}
+): Promise<void> {
+  try {
+    await collection.createIndex(keys, options);
+  } catch (err: unknown) {
+    const code = typeof err === 'object' && err && 'code' in err ? Number((err as { code: number }).code) : 0;
+    // 85 IndexOptionsConflict / 86 IndexKeySpecsConflict — często po Prismie
+    if (code !== 85 && code !== 86) throw err;
+
+    const indexes = await collection.indexes();
+    for (const idx of indexes) {
+      if (idx.name === '_id_') continue;
+      if (sameKeyPattern(idx.key as Record<string, unknown>, keys)) {
+        await collection.dropIndex(idx.name!);
+      }
+    }
+    await collection.createIndex(keys, options);
+  }
+}
+
 async function ensureIndexes(database: Db): Promise<void> {
   await Promise.all([
-    database.collection('User').createIndex({ email: 1 }, { unique: true }),
-    database.collection('TicketGroup').createIndex({ slug: 1 }, { unique: true }),
-    database.collection('TicketGroup').createIndex({ name: 1 }, { unique: true }),
-    database.collection('GroupMember').createIndex({ userId: 1, groupId: 1 }, { unique: true }),
-    database.collection('Worker').createIndex({ email: 1 }, { unique: true }),
-    database.collection('Ticket').createIndex({ groupId: 1, createdAt: -1 }),
-    database.collection('Comment').createIndex({ ticketId: 1, createdAt: -1 }),
-    database.collection('Attachment').createIndex({ ticketId: 1 }),
+    ensureIndex(database.collection('User'), { email: 1 }, { unique: true }),
+    ensureIndex(database.collection('TicketGroup'), { slug: 1 }, { unique: true }),
+    ensureIndex(database.collection('TicketGroup'), { name: 1 }, { unique: true }),
+    ensureIndex(database.collection('GroupMember'), { userId: 1, groupId: 1 }, { unique: true }),
+    ensureIndex(database.collection('Worker'), { email: 1 }, { unique: true }),
+    ensureIndex(database.collection('Ticket'), { groupId: 1, createdAt: -1 }),
+    ensureIndex(database.collection('Comment'), { ticketId: 1, createdAt: -1 }),
+    ensureIndex(database.collection('Attachment'), { ticketId: 1 }),
   ]);
 }
 
