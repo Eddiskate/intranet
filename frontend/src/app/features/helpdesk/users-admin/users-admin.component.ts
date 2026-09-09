@@ -35,6 +35,15 @@ export class UsersAdminComponent implements OnInit {
     this.reload();
     this.api.getUserDepartments().subscribe({
       next: (deps) => this.departments.set(deps),
+      error: () =>
+        this.departments.set([
+          'IT',
+          'Aparatura medyczna',
+          'Telefony i kontrola dostępu',
+          'Dział Techniczny',
+          'Administracja',
+          'Inny',
+        ]),
     });
     this.api.getGroups().subscribe({
       next: (groups) => this.groups.set(groups),
@@ -86,6 +95,7 @@ export class UsersAdminComponent implements OnInit {
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.error.set('Uzupełnij wymagane pola (imię, nazwisko, e-mail, dział).');
       return;
     }
 
@@ -102,10 +112,15 @@ export class UsersAdminComponent implements OnInit {
         this.saving.set(false);
         this.startCreate();
         this.reload();
+        this.api.getGroups().subscribe({ next: (groups) => this.groups.set(groups) });
       },
-      error: () => {
+      error: (err) => {
         this.saving.set(false);
-        this.error.set('Nie udało się zapisać użytkownika');
+        const msg =
+          err?.error?.error?.formErrors?.[0] ||
+          err?.error?.error ||
+          'Nie udało się zapisać użytkownika (sprawdź e-mail / API).';
+        this.error.set(typeof msg === 'string' ? msg : 'Nie udało się zapisać użytkownika');
       },
     });
   }

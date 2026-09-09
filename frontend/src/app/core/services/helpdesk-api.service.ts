@@ -127,4 +127,21 @@ export class HelpdeskApiService {
   getWorkers(): Observable<Worker[]> {
     return this.http.get<Worker[]>(`${this.base}/workers`);
   }
+
+  getSetupStatus(): Observable<{
+    groups: number;
+    users: number;
+    needsSeed: boolean;
+  }> {
+    return this.http.get<{ groups: number; users: number; needsSeed: boolean }>(
+      `${this.base}/setup/status`
+    );
+  }
+
+  seedDefaults(): Observable<{ ok: boolean; message: string; groups: number; users: number }> {
+    return this.http.post<{ ok: boolean; message: string; groups: number; users: number }>(
+      `${this.base}/setup/seed`,
+      {}
+    );
+  }
 }

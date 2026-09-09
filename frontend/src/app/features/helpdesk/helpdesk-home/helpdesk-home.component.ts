@@ -16,16 +16,41 @@ export class HelpdeskHomeComponent implements OnInit {
   readonly groups = signal<TicketGroup[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly seeding = signal(false);
+  readonly seedMessage = signal<string | null>(null);
 
   ngOnInit(): void {
+    this.loadGroups();
+  }
+
+  loadGroups(): void {
+    this.loading.set(true);
+    this.error.set(null);
     this.api.getGroups().subscribe({
       next: (groups) => {
         this.groups.set(groups);
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('Nie udało się pobrać grup helpdesku. Uruchom API (port 3000).');
+        this.error.set('Nie udało się pobrać grup helpdesku.');
         this.loading.set(false);
+      },
+    });
+  }
+
+  seedDefaults(): void {
+    this.seeding.set(true);
+    this.seedMessage.set(null);
+    this.error.set(null);
+    this.api.seedDefaults().subscribe({
+      next: (res) => {
+        this.seeding.set(false);
+        this.seedMessage.set(res.message || 'Dane startowe wgrane.');
+        this.loadGroups();
+      },
+      error: () => {
+        this.seeding.set(false);
+        this.error.set('Nie udało się wgrać domyślnych grup. Sprawdź logi API / Mongo.');
       },
     });
   }

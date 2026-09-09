@@ -3,8 +3,8 @@
     <p class="eyebrow">Intranet · Helpdesk</p>
     <h1>Szpital Rejonowy<br /><span>im. dr. Józefa Rostka</span></h1>
     <p class="lead">
-      Wybierz dział odpowiedzialny za zgłoszenie. Zgłoszenie trafi do osób
-      przypisanych do grupy — nie musisz ich wskazywać ręcznie.
+      Aby dodać zgłoszenie: kliknij kartę grupy poniżej
+      (np. Informatyka) → wypełnij formularz → „Wyślij zgłoszenie”.
     </p>
     <div class="hero__actions">
       <a routerLink="/helpdesk/dashboard" class="btn btn--ghost">Dashboard agenta</a>
@@ -20,8 +20,30 @@
 @if (loading()) {
   <p class="state">Ładowanie grup…</p>
 } @else if (error()) {
-  <p class="state state--error">{{ error() }}</p>
+  <div class="empty">
+    <p class="state state--error">{{ error() }}</p>
+    <button type="button" class="btn btn--primary" (click)="seedDefaults()" [disabled]="seeding()">
+      {{ seeding() ? 'Wgrywanie…' : 'Wgraj domyślne grupy' }}
+    </button>
+  </div>
+} @else if (!groups().length) {
+  <div class="empty">
+    <h2>Brak grup zgłoszeń</h2>
+    <p>
+      Dlatego nie widać przycisku do nowego zgłoszenia.
+      Wgraj domyślne 4 grupy (Informatyka, Aparatura, Telefony, Techniczny) i agentów.
+    </p>
+    @if (seedMessage()) {
+      <p class="seed-ok">{{ seedMessage() }}</p>
+    }
+    <button type="button" class="btn btn--primary" (click)="seedDefaults()" [disabled]="seeding()">
+      {{ seeding() ? 'Wgrywanie…' : 'Wgraj domyślne grupy i agentów' }}
+    </button>
+  </div>
 } @else {
+  @if (seedMessage()) {
+    <p class="seed-ok">{{ seedMessage() }}</p>
+  }
   <section class="groups">
     @for (group of groups(); track group.id) {
       <a

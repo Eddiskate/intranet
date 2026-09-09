@@ -87,6 +87,11 @@
   }
 }
 
+.field-error {
+  color: var(--error-ink);
+  font-size: 0.8rem;
+}
+
 fieldset {
   border: 1px solid var(--border);
   border-radius: 12px;

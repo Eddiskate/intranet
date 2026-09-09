@@ -7,6 +7,7 @@ import usersRouter from './routes/users';
 import groupsRouter from './routes/groups';
 import ticketsRouter from './routes/tickets';
 import workersRouter from './routes/workers';
+import setupRouter from './routes/setup';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -47,6 +48,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/groups', groupsRouter);
 app.use('/api/tickets', ticketsRouter);
 app.use('/api/workers', workersRouter);
+app.use('/api/setup', setupRouter);
 
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));

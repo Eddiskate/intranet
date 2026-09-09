@@ -20,14 +20,23 @@
     <div class="field">
       <label for="firstName">Imię <span>*</span></label>
       <input id="firstName" formControlName="firstName" />
+      @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
+        <small class="field-error">Podaj imię</small>
+      }
     </div>
     <div class="field">
       <label for="lastName">Nazwisko <span>*</span></label>
       <input id="lastName" formControlName="lastName" />
+      @if (form.controls.lastName.touched && form.controls.lastName.invalid) {
+        <small class="field-error">Podaj nazwisko</small>
+      }
     </div>
     <div class="field">
       <label for="email">E-mail <span>*</span></label>
       <input id="email" type="email" formControlName="email" />
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <small class="field-error">Podaj poprawny e-mail</small>
+      }
     </div>
     <div class="field">
       <label for="department">Dział <span>*</span></label>
@@ -37,6 +46,9 @@
           <option [value]="dep">{{ dep }}</option>
         }
       </select>
+      @if (form.controls.department.touched && form.controls.department.invalid) {
+        <small class="field-error">Wybierz dział z listy</small>
+      }
     </div>
     <div class="field">
       <label for="role">Rola</label>

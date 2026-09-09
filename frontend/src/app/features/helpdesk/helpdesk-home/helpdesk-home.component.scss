@@ -211,3 +211,31 @@
     border-radius: 12px;
   }
 }
+
+.empty {
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+  max-width: 36rem;
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+
+  h2 {
+    margin: 0;
+    font-family: var(--font-display);
+  }
+
+  p {
+    margin: 0;
+    color: var(--ink-muted);
+    line-height: 1.5;
+  }
+}
+
+.seed-ok {
+  color: var(--teal-700);
+  font-weight: 600;
+  margin: 0 0 1rem;
+}
