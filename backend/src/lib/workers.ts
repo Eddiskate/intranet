@@ -1,4 +1,5 @@
-import { prisma } from './prisma';
+import { ObjectId } from 'mongodb';
+import { cols, serialize } from './db';
 
 /** Dzieli „Imię Nazwisko …” na firstName / lastName */
 export function splitFullName(fullName: string): { firstName: string; lastName: string } {
@@ -20,20 +21,35 @@ export async function ensureWorker(input: {
   const email = input.email.trim().toLowerCase();
   const { firstName, lastName } = splitFullName(input.fullName);
   const phone = input.phone.trim();
+  const now = new Date();
 
-  const existing = await prisma.worker.findUnique({ where: { email } });
+  const existing = await cols.workers().findOne({ email });
   if (existing) {
-    return prisma.worker.update({
-      where: { id: existing.id },
-      data: {
-        firstName,
-        lastName,
-        phone: phone || existing.phone,
-      },
-    });
+    await cols.workers().updateOne(
+      { _id: existing._id },
+      {
+        $set: {
+          firstName,
+          lastName,
+          phone: phone || existing.phone,
+          updatedAt: now,
+        },
+      }
+    );
+    const updated = await cols.workers().findOne({ _id: existing._id });
+    return serialize(updated)!;
   }
 
-  return prisma.worker.create({
-    data: { firstName, lastName, email, phone: phone || '—' },
-  });
+  const _id = new ObjectId();
+  const doc = {
+    _id,
+    firstName,
+    lastName,
+    email,
+    phone: phone || '—',
+    createdAt: now,
+    updatedAt: now,
+  };
+  await cols.workers().insertOne(doc);
+  return serialize(doc)!;
 }

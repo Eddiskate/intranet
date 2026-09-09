@@ -2,11 +2,14 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { ObjectId } from 'mongodb';
 import { z } from 'zod';
-import { prisma } from '../lib/prisma';
 import { ORGANIZATIONAL_UNITS } from '../data/departments';
+import { cols, serialize, toObjectId } from '../lib/db';
 import { ensureWorker } from '../lib/workers';
 import { sendCommentNotification, sendTicketCreatedEmails } from '../lib/mail';
+import { findTicketByIdParam, loadGroupWithMembers, loadTicket } from '../lib/relations';
+import type { TicketStatus } from '../types';
 
 const router = Router();
 
@@ -44,28 +47,6 @@ const commentSchema = z.object({
   body: z.string().min(1),
 });
 
-const ticketListInclude = {
-  group: {
-    include: {
-      members: { include: { user: true } },
-    },
-  },
-  assignee: true,
-  attachments: true,
-  _count: { select: { comments: true } },
-} as const;
-
-const ticketDetailInclude = {
-  group: {
-    include: {
-      members: { include: { user: true } },
-    },
-  },
-  assignee: true,
-  attachments: true,
-  comments: { orderBy: { createdAt: 'desc' as const } },
-};
-
 router.get('/meta/organizational-units', (_req, res) => {
   res.json(ORGANIZATIONAL_UNITS);
 });
@@ -73,13 +54,10 @@ router.get('/meta/organizational-units', (_req, res) => {
 router.get('/', async (req, res) => {
   const { userId, groupId, status } = req.query;
 
-  let groupIdsFilter: string[] | undefined;
+  let groupIdsFilter: ObjectId[] | undefined;
 
   if (typeof userId === 'string' && userId) {
-    const memberships = await prisma.groupMember.findMany({
-      where: { userId },
-      select: { groupId: true },
-    });
+    const memberships = await cols.members().find({ userId: toObjectId(userId) }).toArray();
     groupIdsFilter = memberships.map((m) => m.groupId);
     if (groupIdsFilter.length === 0) {
       res.json([]);
@@ -88,37 +66,34 @@ router.get('/', async (req, res) => {
   }
 
   if (typeof groupId === 'string' && groupId) {
+    const gid = toObjectId(groupId);
     groupIdsFilter = groupIdsFilter
-      ? groupIdsFilter.filter((id) => id === groupId)
-      : [groupId];
+      ? groupIdsFilter.filter((id) => id.equals(gid))
+      : [gid];
   }
 
-  const tickets = await prisma.ticket.findMany({
-    where: {
-      ...(groupIdsFilter ? { groupId: { in: groupIdsFilter } } : {}),
-      ...(typeof status === 'string' && status
-        ? { status: status as 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' }
-        : {}),
-    },
-    include: ticketListInclude,
-    orderBy: { createdAt: 'desc' },
-  });
+  const filter: Record<string, unknown> = {};
+  if (groupIdsFilter) {
+    filter.groupId = { $in: groupIdsFilter };
+  }
+  if (typeof status === 'string' && status) {
+    filter.status = status;
+  }
 
-  res.json(tickets);
+  const tickets = await cols.tickets().find(filter).sort({ createdAt: -1 }).toArray();
+  const payload = await Promise.all(
+    tickets.map((t) => loadTicket(t, { commentCount: true }))
+  );
+  res.json(payload);
 });
 
 router.get('/:id', async (req, res) => {
-  const ticket = await prisma.ticket.findUnique({
-    where: { id: req.params.id },
-    include: ticketDetailInclude,
-  });
-
+  const ticket = await findTicketByIdParam(req.params.id);
   if (!ticket) {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
     return;
   }
-
-  res.json(ticket);
+  res.json(await loadTicket(ticket, { comments: true }));
 });
 
 router.post('/', upload.array('attachments', 5), async (req, res) => {
@@ -133,11 +108,16 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
     return;
   }
 
-  const group = await prisma.ticketGroup.findUnique({
-    where: { id: parsed.data.groupId },
-    include: { members: { include: { user: true } } },
-  });
-  if (!group) {
+  let groupObjectId: ObjectId;
+  try {
+    groupObjectId = toObjectId(parsed.data.groupId);
+  } catch {
+    res.status(400).json({ error: 'Nieprawidłowa grupa zgłoszeń' });
+    return;
+  }
+
+  const groupPayload = await loadGroupWithMembers(groupObjectId);
+  if (!groupPayload) {
     res.status(400).json({ error: 'Nieprawidłowa grupa zgłoszeń' });
     return;
   }
@@ -149,43 +129,57 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
   });
 
   const files = (req.files as Express.Multer.File[]) ?? [];
+  const now = new Date();
+  const ticketId = new ObjectId();
 
-  const ticket = await prisma.ticket.create({
-    data: {
-      ...parsed.data,
-      computerIp: parsed.data.computerIp || null,
-      attachments: {
-        create: files.map((file) => ({
-          originalName: file.originalname,
-          filename: file.filename,
-          mimeType: file.mimetype,
-          size: file.size,
-        })),
-      },
-    },
-    include: {
-      group: true,
-      assignee: true,
-      attachments: true,
-      comments: { orderBy: { createdAt: 'desc' } },
-    },
+  await cols.tickets().insertOne({
+    _id: ticketId,
+    groupId: groupObjectId,
+    assigneeId: null,
+    requesterName: parsed.data.requesterName,
+    requesterEmail: parsed.data.requesterEmail,
+    organizationalUnit: parsed.data.organizationalUnit,
+    room: parsed.data.room,
+    phone: parsed.data.phone,
+    subject: parsed.data.subject,
+    body: parsed.data.body,
+    computerIp: parsed.data.computerIp || null,
+    status: 'OPEN',
+    createdAt: now,
+    updatedAt: now,
   });
 
-  const agentEmails = group.members
+  if (files.length) {
+    await cols.attachments().insertMany(
+      files.map((file) => ({
+        _id: new ObjectId(),
+        ticketId,
+        originalName: file.originalname,
+        filename: file.filename,
+        mimeType: file.mimetype,
+        size: file.size,
+        createdAt: now,
+      }))
+    );
+  }
+
+  const ticket = await cols.tickets().findOne({ _id: ticketId });
+  const full = await loadTicket(ticket!, { comments: true });
+
+  const agentEmails = ((groupPayload.members as Array<{ user?: { email?: string } | null }>) || [])
     .map((m) => m.user?.email)
     .filter((e): e is string => Boolean(e));
 
-  // Maile nie blokują odpowiedzi API
   void sendTicketCreatedEmails({
-    ticketId: ticket.id,
-    subject: ticket.subject,
-    groupName: group.name,
-    requesterName: ticket.requesterName,
-    requesterEmail: ticket.requesterEmail,
+    ticketId: ticketId.toHexString(),
+    subject: parsed.data.subject,
+    groupName: String((groupPayload as { name?: string }).name ?? ''),
+    requesterName: parsed.data.requesterName,
+    requesterEmail: parsed.data.requesterEmail,
     agentEmails,
   });
 
-  res.status(201).json(ticket);
+  res.status(201).json(full);
 });
 
 router.patch('/:id/status', async (req, res) => {
@@ -200,16 +194,19 @@ router.patch('/:id/status', async (req, res) => {
     return;
   }
 
-  try {
-    const ticket = await prisma.ticket.update({
-      where: { id: req.params.id },
-      data: { status: parsed.data.status },
-      include: ticketDetailInclude,
-    });
-    res.json(ticket);
-  } catch {
+  const existing = await findTicketByIdParam(req.params.id);
+  if (!existing) {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
+    return;
   }
+
+  await cols.tickets().updateOne(
+    { _id: existing._id },
+    { $set: { status: parsed.data.status as TicketStatus, updatedAt: new Date() } }
+  );
+
+  const ticket = await cols.tickets().findOne({ _id: existing._id });
+  res.json(await loadTicket(ticket!, { comments: true }));
 });
 
 router.patch('/:id/assignee', async (req, res) => {
@@ -224,50 +221,51 @@ router.patch('/:id/assignee', async (req, res) => {
     return;
   }
 
-  const existing = await prisma.ticket.findUnique({
-    where: { id: req.params.id },
-    include: { group: { include: { members: true } } },
-  });
-
+  const existing = await findTicketByIdParam(req.params.id);
   if (!existing) {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
     return;
   }
 
   const assigneeId = parsed.data.assigneeId;
-
   if (assigneeId) {
-    const isMember = existing.group.members.some((m) => m.userId === assigneeId);
+    const isMember = await cols.members().findOne({
+      groupId: existing.groupId,
+      userId: toObjectId(assigneeId),
+    });
     if (!isMember) {
       res.status(400).json({ error: 'Można przypisać tylko osobę z grupy zgłoszenia' });
       return;
     }
   }
 
-  const ticket = await prisma.ticket.update({
-    where: { id: existing.id },
-    data: { assigneeId },
-    include: ticketDetailInclude,
-  });
+  await cols.tickets().updateOne(
+    { _id: existing._id },
+    {
+      $set: {
+        assigneeId: assigneeId ? toObjectId(assigneeId) : null,
+        updatedAt: new Date(),
+      },
+    }
+  );
 
-  res.json(ticket);
+  const ticket = await cols.tickets().findOne({ _id: existing._id });
+  res.json(await loadTicket(ticket!, { comments: true }));
 });
 
 router.get('/:id/comments', async (req, res) => {
-  const ticket = await prisma.ticket.findUnique({
-    where: { id: req.params.id },
-    select: { id: true },
-  });
+  const ticket = await findTicketByIdParam(req.params.id);
   if (!ticket) {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
     return;
   }
 
-  const comments = await prisma.comment.findMany({
-    where: { ticketId: ticket.id },
-    orderBy: { createdAt: 'desc' },
-  });
-  res.json(comments);
+  const comments = await cols
+    .comments()
+    .find({ ticketId: ticket._id })
+    .sort({ createdAt: -1 })
+    .toArray();
+  res.json(comments.map((c) => serialize(c)!));
 });
 
 router.post('/:id/comments', async (req, res) => {
@@ -283,17 +281,13 @@ router.post('/:id/comments', async (req, res) => {
     return;
   }
 
-  const ticket = await prisma.ticket.findUnique({
-    where: { id: req.params.id },
-    include: {
-      group: { include: { members: { include: { user: true } } } },
-    },
-  });
+  const ticket = await findTicketByIdParam(req.params.id);
   if (!ticket) {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
     return;
   }
 
+  const groupPayload = await loadGroupWithMembers(ticket.groupId);
   const authorName = parsed.data.authorName?.trim() || null;
 
   await ensureWorker({
@@ -302,21 +296,22 @@ router.post('/:id/comments', async (req, res) => {
     phone: '',
   });
 
-  const comment = await prisma.comment.create({
-    data: {
-      ticketId: ticket.id,
-      authorEmail: parsed.data.authorEmail,
-      authorName,
-      body: parsed.data.body.trim(),
-    },
-  });
+  const comment = {
+    _id: new ObjectId(),
+    ticketId: ticket._id,
+    authorEmail: parsed.data.authorEmail,
+    authorName,
+    body: parsed.data.body.trim(),
+    createdAt: new Date(),
+  };
+  await cols.comments().insertOne(comment);
 
-  const agentEmails = ticket.group.members
+  const agentEmails = ((groupPayload?.members as Array<{ user?: { email?: string } | null }>) || [])
     .map((m) => m.user?.email)
     .filter((e): e is string => Boolean(e));
 
   void sendCommentNotification({
-    ticketId: ticket.id,
+    ticketId: ticket._id.toHexString(),
     subject: ticket.subject,
     authorEmail: comment.authorEmail,
     authorName: comment.authorName,
@@ -324,7 +319,7 @@ router.post('/:id/comments', async (req, res) => {
     recipients: [ticket.requesterEmail, ...agentEmails],
   });
 
-  res.status(201).json(comment);
+  res.status(201).json(serialize(comment)!);
 });
 
 export default router;

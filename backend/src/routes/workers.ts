@@ -1,6 +1,7 @@
 import { Router } from 'express';
+import { ObjectId } from 'mongodb';
 import { z } from 'zod';
-import { prisma } from '../lib/prisma';
+import { cols, serialize } from '../lib/db';
 
 const router = Router();
 
@@ -12,10 +13,8 @@ const workerSchema = z.object({
 });
 
 router.get('/', async (_req, res) => {
-  const workers = await prisma.worker.findMany({
-    orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-  });
-  res.json(workers);
+  const workers = await cols.workers().find().sort({ lastName: 1, firstName: 1 }).toArray();
+  res.json(workers.map((w) => serialize(w)!));
 });
 
 router.post('/', async (req, res) => {
@@ -28,12 +27,21 @@ router.post('/', async (req, res) => {
     return;
   }
 
-  try {
-    const worker = await prisma.worker.create({ data: parsed.data });
-    res.status(201).json(worker);
-  } catch {
+  const existing = await cols.workers().findOne({ email: parsed.data.email });
+  if (existing) {
     res.status(409).json({ error: 'Worker z tym e-mailem już istnieje' });
+    return;
   }
+
+  const now = new Date();
+  const doc = {
+    _id: new ObjectId(),
+    ...parsed.data,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await cols.workers().insertOne(doc);
+  res.status(201).json(serialize(doc)!);
 });
 
 export default router;

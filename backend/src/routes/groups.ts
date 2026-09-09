@@ -1,45 +1,29 @@
 import { Router } from 'express';
+import { ObjectId } from 'mongodb';
 import { z } from 'zod';
-import { prisma } from '../lib/prisma';
+import { cols, isObjectIdString, toObjectId } from '../lib/db';
+import { loadGroupWithMembers } from '../lib/relations';
 
 const router = Router();
 
-function isObjectId(value: string): boolean {
-  return /^[a-f\d]{24}$/i.test(value);
-}
-
 router.get('/', async (_req, res) => {
-  const groups = await prisma.ticketGroup.findMany({
-    include: {
-      members: {
-        include: {
-          user: true,
-        },
-      },
-      _count: { select: { tickets: true } },
-    },
-    orderBy: { name: 'asc' },
-  });
-  res.json(groups);
+  const groups = await cols.groups().find().sort({ name: 1 }).toArray();
+  const payload = await Promise.all(groups.map((g) => loadGroupWithMembers(g._id, true)));
+  res.json(payload);
 });
 
 router.get('/:idOrSlug', async (req, res) => {
   const key = req.params.idOrSlug;
-  const group = await prisma.ticketGroup.findFirst({
-    where: isObjectId(key)
-      ? { OR: [{ id: key }, { slug: key }] }
-      : { slug: key },
-    include: {
-      members: { include: { user: true } },
-      _count: { select: { tickets: true } },
-    },
-  });
+  const group = isObjectIdString(key)
+    ? await cols.groups().findOne({ $or: [{ _id: toObjectId(key) }, { slug: key }] })
+    : await cols.groups().findOne({ slug: key });
 
   if (!group) {
     res.status(404).json({ error: 'Grupa nie znaleziona' });
     return;
   }
-  res.json(group);
+
+  res.json(await loadGroupWithMembers(group._id, true));
 });
 
 router.put('/:id/members', async (req, res) => {
@@ -49,30 +33,32 @@ router.put('/:id/members', async (req, res) => {
     return;
   }
 
-  const groupId = req.params.id;
-
+  let groupId: ObjectId;
   try {
-    await prisma.groupMember.deleteMany({ where: { groupId } });
-    if (parsed.data.userIds.length) {
-      await prisma.groupMember.createMany({
-        data: parsed.data.userIds.map((userId) => ({
-          userId,
-          groupId,
-        })),
-      });
-    }
-
-    const group = await prisma.ticketGroup.findUnique({
-      where: { id: groupId },
-      include: {
-        members: { include: { user: true } },
-      },
-    });
-
-    res.json(group);
+    groupId = toObjectId(req.params.id);
   } catch {
     res.status(404).json({ error: 'Grupa nie znaleziona' });
+    return;
   }
+
+  const group = await cols.groups().findOne({ _id: groupId });
+  if (!group) {
+    res.status(404).json({ error: 'Grupa nie znaleziona' });
+    return;
+  }
+
+  await cols.members().deleteMany({ groupId });
+  if (parsed.data.userIds.length) {
+    await cols.members().insertMany(
+      parsed.data.userIds.map((userId) => ({
+        _id: new ObjectId(),
+        userId: toObjectId(userId),
+        groupId,
+      }))
+    );
+  }
+
+  res.json(await loadGroupWithMembers(groupId));
 });
 
 export default router;

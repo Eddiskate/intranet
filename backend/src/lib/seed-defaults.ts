@@ -1,4 +1,6 @@
-import { PrismaClient, UserRole } from '@prisma/client';
+import { ObjectId } from 'mongodb';
+import { cols } from './db';
+import { loadGroupWithMembers } from './relations';
 
 const groups = [
   {
@@ -42,93 +44,107 @@ const agents: Array<{
   { firstName: 'Mirosław', lastName: 'Wiczkowski', email: 'm.wiczkowski@szpital.local', department: 'Dział Techniczny', groupSlug: 'dzial-techniczny' },
 ];
 
-export async function seedDefaults(prisma: PrismaClient = new PrismaClient()) {
-  try {
-    return await runSeed(prisma);
-  } catch (err: unknown) {
-    const code = typeof err === 'object' && err && 'code' in err ? String((err as { code: string }).code) : '';
-    if (code === 'P2031') {
-      throw new Error(
-        'MongoDB nie jest replica setem (Prisma P2031). ' +
-          'Na EasyPanel uruchom mongod z --replSet rs0, zrób rs.initiate(...), ' +
-          'dopisz &replicaSet=rs0 do DATABASE_URL i zrestartuj aplikację.'
-      );
-    }
-    throw err;
-  }
-}
-
-async function runSeed(prisma: PrismaClient) {
-  const bySlug: Record<string, { id: string }> = {};
+export async function seedDefaults() {
+  const now = new Date();
+  const bySlug: Record<string, ObjectId> = {};
 
   for (const group of groups) {
-    const existing = await prisma.ticketGroup.findUnique({ where: { slug: group.slug } });
-    const saved = existing
-      ? await prisma.ticketGroup.update({
-          where: { id: existing.id },
-          data: { name: group.name, description: group.description },
-        })
-      : await prisma.ticketGroup.create({ data: group });
-    bySlug[group.slug] = saved;
+    const existing = await cols.groups().findOne({ slug: group.slug });
+    if (existing) {
+      await cols.groups().updateOne(
+        { _id: existing._id },
+        { $set: { name: group.name, description: group.description, updatedAt: now } }
+      );
+      bySlug[group.slug] = existing._id;
+    } else {
+      const _id = new ObjectId();
+      await cols.groups().insertOne({
+        _id,
+        name: group.name,
+        slug: group.slug,
+        description: group.description,
+        createdAt: now,
+        updatedAt: now,
+      });
+      bySlug[group.slug] = _id;
+    }
   }
 
   for (const agent of agents) {
-    let user = await prisma.user.findUnique({ where: { email: agent.email } });
-    if (user) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          firstName: agent.firstName,
-          lastName: agent.lastName,
-          department: agent.department,
-          role: UserRole.AGENT,
-        },
-      });
+    const existingUser = await cols.users().findOne({ email: agent.email });
+    let userId: ObjectId;
+
+    if (existingUser) {
+      userId = existingUser._id;
+      await cols.users().updateOne(
+        { _id: userId },
+        {
+          $set: {
+            firstName: agent.firstName,
+            lastName: agent.lastName,
+            department: agent.department,
+            role: 'AGENT',
+            updatedAt: now,
+          },
+        }
+      );
     } else {
-      user = await prisma.user.create({
-        data: {
-          firstName: agent.firstName,
-          lastName: agent.lastName,
-          email: agent.email,
-          department: agent.department,
-          role: UserRole.AGENT,
-        },
+      userId = new ObjectId();
+      await cols.users().insertOne({
+        _id: userId,
+        firstName: agent.firstName,
+        lastName: agent.lastName,
+        email: agent.email,
+        department: agent.department,
+        role: 'AGENT',
+        createdAt: now,
+        updatedAt: now,
       });
     }
 
-    const groupId = bySlug[agent.groupSlug].id;
-    const membership = await prisma.groupMember.findUnique({
-      where: { userId_groupId: { userId: user.id, groupId } },
-    });
+    const groupId = bySlug[agent.groupSlug];
+    const membership = await cols.members().findOne({ userId, groupId });
     if (!membership) {
-      await prisma.groupMember.create({ data: { userId: user.id, groupId } });
+      await cols.members().insertOne({
+        _id: new ObjectId(),
+        userId,
+        groupId,
+      });
     }
   }
 
   const adminEmail = 'admin@szpital.local';
-  if (!(await prisma.user.findUnique({ where: { email: adminEmail } }))) {
-    await prisma.user.create({
-      data: {
-        firstName: 'Admin',
-        lastName: 'Systemu',
-        email: adminEmail,
-        department: 'Administracja',
-        role: UserRole.ADMIN,
-      },
+  if (!(await cols.users().findOne({ email: adminEmail }))) {
+    await cols.users().insertOne({
+      _id: new ObjectId(),
+      firstName: 'Admin',
+      lastName: 'Systemu',
+      email: adminEmail,
+      department: 'Administracja',
+      role: 'ADMIN',
+      createdAt: now,
+      updatedAt: now,
     });
   }
 
-  const summary = await prisma.ticketGroup.findMany({
-    include: { members: { include: { user: true } } },
-    orderBy: { name: 'asc' },
-  });
+  const allGroups = await cols.groups().find().sort({ name: 1 }).toArray();
+  const summary = [];
+  for (const g of allGroups) {
+    const payload = await loadGroupWithMembers(g._id);
+    summary.push({
+      name: g.name,
+      members: (payload?.members || [])
+        .map((m) => {
+          const u = m.user as { firstName?: string; lastName?: string } | null;
+          return u ? `${u.firstName} ${u.lastName}` : '';
+        })
+        .filter(Boolean),
+    });
+  }
 
   return {
-    groups: summary.length,
-    users: await prisma.user.count(),
-    summary: summary.map((g) => ({
-      name: g.name,
-      members: g.members.map((m) => `${m.user.firstName} ${m.user.lastName}`),
-    })),
+    groups: allGroups.length,
+    users: await cols.users().countDocuments(),
+    summary,
   };
 }

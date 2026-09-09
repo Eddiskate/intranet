@@ -1,7 +1,10 @@
 import { Router } from 'express';
+import { ObjectId } from 'mongodb';
 import { z } from 'zod';
-import { prisma } from '../lib/prisma';
 import { USER_DEPARTMENTS } from '../data/departments';
+import { cols, toObjectId } from '../lib/db';
+import { loadUserWithGroups } from '../lib/relations';
+import type { UserRole } from '../types';
 
 const router = Router();
 
@@ -19,27 +22,22 @@ router.get('/departments', (_req, res) => {
 });
 
 router.get('/', async (_req, res) => {
-  const users = await prisma.user.findMany({
-    include: {
-      groups: { include: { group: true } },
-    },
-    orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-  });
-  res.json(users);
+  const users = await cols.users().find().sort({ lastName: 1, firstName: 1 }).toArray();
+  const payload = await Promise.all(users.map((u) => loadUserWithGroups(u._id)));
+  res.json(payload);
 });
 
 router.get('/:id', async (req, res) => {
-  const user = await prisma.user.findUnique({
-    where: { id: req.params.id },
-    include: {
-      groups: { include: { group: true } },
-    },
-  });
-  if (!user) {
+  try {
+    const user = await loadUserWithGroups(toObjectId(req.params.id));
+    if (!user) {
+      res.status(404).json({ error: 'Użytkownik nie znaleziony' });
+      return;
+    }
+    res.json(user);
+  } catch {
     res.status(404).json({ error: 'Użytkownik nie znaleziony' });
-    return;
   }
-  res.json(user);
 });
 
 router.post('/', async (req, res) => {
@@ -50,21 +48,31 @@ router.post('/', async (req, res) => {
   }
 
   const { groupIds = [], ...data } = parsed.data;
+  const now = new Date();
+  const _id = new ObjectId();
 
-  const user = await prisma.user.create({
-    data: {
-      ...data,
-      role: data.role ?? 'STAFF',
-      groups: {
-        create: groupIds.map((groupId) => ({ groupId })),
-      },
-    },
-    include: {
-      groups: { include: { group: true } },
-    },
+  await cols.users().insertOne({
+    _id,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    email: data.email,
+    department: data.department,
+    role: (data.role ?? 'STAFF') as UserRole,
+    createdAt: now,
+    updatedAt: now,
   });
 
-  res.status(201).json(user);
+  if (groupIds.length) {
+    await cols.members().insertMany(
+      groupIds.map((groupId) => ({
+        _id: new ObjectId(),
+        userId: _id,
+        groupId: toObjectId(groupId),
+      }))
+    );
+  }
+
+  res.status(201).json(await loadUserWithGroups(_id));
 });
 
 router.put('/:id', async (req, res) => {
@@ -75,42 +83,60 @@ router.put('/:id', async (req, res) => {
   }
 
   const { groupIds, ...data } = parsed.data;
-  const userId = req.params.id;
 
+  let userId: ObjectId;
   try {
-    if (groupIds) {
-      await prisma.groupMember.deleteMany({ where: { userId } });
-      if (groupIds.length) {
-        await prisma.groupMember.createMany({
-          data: groupIds.map((groupId) => ({ userId, groupId })),
-        });
-      }
-    }
+    userId = toObjectId(req.params.id);
+  } catch {
+    res.status(404).json({ error: 'Użytkownik nie znaleziony' });
+    return;
+  }
 
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: {
+  const existing = await cols.users().findOne({ _id: userId });
+  if (!existing) {
+    res.status(404).json({ error: 'Użytkownik nie znaleziony' });
+    return;
+  }
+
+  if (groupIds) {
+    await cols.members().deleteMany({ userId });
+    if (groupIds.length) {
+      await cols.members().insertMany(
+        groupIds.map((groupId) => ({
+          _id: new ObjectId(),
+          userId,
+          groupId: toObjectId(groupId),
+        }))
+      );
+    }
+  }
+
+  await cols.users().updateOne(
+    { _id: userId },
+    {
+      $set: {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
         department: data.department,
-        role: data.role,
+        ...(data.role ? { role: data.role as UserRole } : {}),
+        updatedAt: new Date(),
       },
-      include: {
-        groups: { include: { group: true } },
-      },
-    });
+    }
+  );
 
-    res.json(user);
-  } catch {
-    res.status(404).json({ error: 'Użytkownik nie znaleziony' });
-  }
+  res.json(await loadUserWithGroups(userId));
 });
 
 router.delete('/:id', async (req, res) => {
   try {
-    await prisma.groupMember.deleteMany({ where: { userId: req.params.id } });
-    await prisma.user.delete({ where: { id: req.params.id } });
+    const userId = toObjectId(req.params.id);
+    await cols.members().deleteMany({ userId });
+    const result = await cols.users().deleteOne({ _id: userId });
+    if (result.deletedCount === 0) {
+      res.status(404).json({ error: 'Użytkownik nie znaleziony' });
+      return;
+    }
     res.status(204).send();
   } catch {
     res.status(404).json({ error: 'Użytkownik nie znaleziony' });

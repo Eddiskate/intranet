@@ -26,8 +26,7 @@ COPY backend/package.json backend/package-lock.json ./
 RUN npm ci ${NPM_FLAGS}
 
 COPY backend/ ./
-RUN npx prisma generate \
-  && npm run build \
+RUN npm run build \
   && npm prune --omit=dev \
   && rm -rf /tmp/frontend-public
 
@@ -47,7 +46,6 @@ RUN mkdir -p /data/uploads
 COPY --from=backend-build /app/backend/package.json ./package.json
 COPY --from=backend-build /app/backend/node_modules ./node_modules
 COPY --from=backend-build /app/backend/dist ./dist
-COPY --from=backend-build /app/backend/prisma ./prisma
 COPY --from=frontend-build /app/frontend/dist/frontend/browser ./public
 COPY docker/entrypoint.sh /entrypoint.sh
 
