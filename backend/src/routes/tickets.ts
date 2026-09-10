@@ -5,7 +5,8 @@ import fs from 'fs';
 import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 import { ORGANIZATIONAL_UNITS } from '../data/departments';
-import { cols, serialize, toObjectId } from '../lib/db';
+import { requireAuth, type AuthedRequest } from '../lib/auth';
+import { cols, routeParam, serialize, toObjectId } from '../lib/db';
 import { ensureWorker } from '../lib/workers';
 import { sendCommentNotification, sendTicketCreatedEmails } from '../lib/mail';
 import { findTicketByIdParam, loadGroupWithMembers, loadTicket } from '../lib/relations';
@@ -51,31 +52,25 @@ router.get('/meta/organizational-units', (_req, res) => {
   res.json(ORGANIZATIONAL_UNITS);
 });
 
-router.get('/', async (req, res) => {
-  const { userId, groupId, status } = req.query;
+router.get('/', requireAuth, async (req: AuthedRequest, res) => {
+  const { groupId, status } = req.query;
+  const userId = req.user!.id;
 
-  let groupIdsFilter: ObjectId[] | undefined;
-
-  if (typeof userId === 'string' && userId) {
-    const memberships = await cols.members().find({ userId: toObjectId(userId) }).toArray();
-    groupIdsFilter = memberships.map((m) => m.groupId);
-    if (groupIdsFilter.length === 0) {
-      res.json([]);
-      return;
-    }
+  const memberships = await cols.members().find({ userId: toObjectId(userId) }).toArray();
+  let groupIdsFilter: ObjectId[] = memberships.map((m) => m.groupId);
+  if (groupIdsFilter.length === 0) {
+    res.json([]);
+    return;
   }
 
   if (typeof groupId === 'string' && groupId) {
     const gid = toObjectId(groupId);
-    groupIdsFilter = groupIdsFilter
-      ? groupIdsFilter.filter((id) => id.equals(gid))
-      : [gid];
+    groupIdsFilter = groupIdsFilter.filter((id) => id.equals(gid));
   }
 
-  const filter: Record<string, unknown> = {};
-  if (groupIdsFilter) {
-    filter.groupId = { $in: groupIdsFilter };
-  }
+  const filter: Record<string, unknown> = {
+    groupId: { $in: groupIdsFilter },
+  };
   if (typeof status === 'string' && status) {
     filter.status = status;
   }
@@ -88,7 +83,7 @@ router.get('/', async (req, res) => {
 });
 
 router.get('/:id', async (req, res) => {
-  const ticket = await findTicketByIdParam(req.params.id);
+  const ticket = await findTicketByIdParam(routeParam(req.params.id));
   if (!ticket) {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
     return;
@@ -182,7 +177,7 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
   res.status(201).json(full);
 });
 
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', requireAuth, async (req, res) => {
   const parsed = z
     .object({
       status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']),
@@ -194,7 +189,7 @@ router.patch('/:id/status', async (req, res) => {
     return;
   }
 
-  const existing = await findTicketByIdParam(req.params.id);
+  const existing = await findTicketByIdParam(routeParam(req.params.id));
   if (!existing) {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
     return;
@@ -209,7 +204,7 @@ router.patch('/:id/status', async (req, res) => {
   res.json(await loadTicket(ticket!, { comments: true }));
 });
 
-router.patch('/:id/assignee', async (req, res) => {
+router.patch('/:id/assignee', requireAuth, async (req, res) => {
   const parsed = z
     .object({
       assigneeId: z.string().nullable(),
@@ -221,7 +216,7 @@ router.patch('/:id/assignee', async (req, res) => {
     return;
   }
 
-  const existing = await findTicketByIdParam(req.params.id);
+  const existing = await findTicketByIdParam(routeParam(req.params.id));
   if (!existing) {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
     return;
@@ -254,7 +249,7 @@ router.patch('/:id/assignee', async (req, res) => {
 });
 
 router.get('/:id/comments', async (req, res) => {
-  const ticket = await findTicketByIdParam(req.params.id);
+  const ticket = await findTicketByIdParam(routeParam(req.params.id));
   if (!ticket) {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
     return;
@@ -281,7 +276,7 @@ router.post('/:id/comments', async (req, res) => {
     return;
   }
 
-  const ticket = await findTicketByIdParam(req.params.id);
+  const ticket = await findTicketByIdParam(routeParam(req.params.id));
   if (!ticket) {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
     return;

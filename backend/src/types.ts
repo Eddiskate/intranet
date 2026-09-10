@@ -10,6 +10,7 @@ export interface UserDoc {
   email: string;
   department: string;
   role: UserRole;
+  passwordHash?: string;
   createdAt: Date;
   updatedAt: Date;
 }

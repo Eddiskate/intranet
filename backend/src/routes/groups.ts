@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { ObjectId } from 'mongodb';
 import { z } from 'zod';
-import { cols, isObjectIdString, toObjectId } from '../lib/db';
+import { requireAuth } from '../lib/auth';
+import { cols, isObjectIdString, routeParam, toObjectId } from '../lib/db';
 import { loadGroupWithMembers } from '../lib/relations';
 
 const router = Router();
@@ -13,7 +14,7 @@ router.get('/', async (_req, res) => {
 });
 
 router.get('/:idOrSlug', async (req, res) => {
-  const key = req.params.idOrSlug;
+  const key = routeParam(req.params.idOrSlug);
   const group = isObjectIdString(key)
     ? await cols.groups().findOne({ $or: [{ _id: toObjectId(key) }, { slug: key }] })
     : await cols.groups().findOne({ slug: key });
@@ -26,7 +27,7 @@ router.get('/:idOrSlug', async (req, res) => {
   res.json(await loadGroupWithMembers(group._id, true));
 });
 
-router.put('/:id/members', async (req, res) => {
+router.put('/:id/members', requireAuth, async (req, res) => {
   const parsed = z.object({ userIds: z.array(z.string()) }).safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
@@ -35,7 +36,7 @@ router.put('/:id/members', async (req, res) => {
 
   let groupId: ObjectId;
   try {
-    groupId = toObjectId(req.params.id);
+    groupId = toObjectId(routeParam(req.params.id));
   } catch {
     res.status(404).json({ error: 'Grupa nie znaleziona' });
     return;

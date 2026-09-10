@@ -11,18 +11,6 @@
 
   <div class="filters">
     <label>
-      Zalogowany jako
-      <select
-        [ngModel]="session.userId()"
-        (ngModelChange)="onUserChange($event)"
-      >
-        @for (user of agentUsers(); track user.id) {
-          <option [value]="user.id">{{ displayName(user) }} · {{ user.department }}</option>
-        }
-      </select>
-    </label>
-
-    <label>
       Status
       <select
         [ngModel]="statusFilter()"
@@ -38,9 +26,11 @@
   </div>
 </header>
 
-@if (session.currentUser(); as user) {
+@if (auth.user(); as user) {
   <div class="who">
-    Twoje grupy:
+    Zalogowany:
+    <strong>{{ displayName(user) }}</strong>
+    · grupy:
     <strong>{{ groupLabel(user) }}</strong>
   </div>
 }

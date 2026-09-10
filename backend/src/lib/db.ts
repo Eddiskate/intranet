@@ -105,6 +105,11 @@ export function toObjectId(id: string): ObjectId {
   return new ObjectId(id);
 }
 
+export function routeParam(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0] ?? '';
+  return value ?? '';
+}
+
 export function isObjectIdString(value: string): boolean {
   return ObjectId.isValid(value) && String(new ObjectId(value)) === value;
 }
@@ -116,6 +121,9 @@ export function serialize<T extends Document>(doc: T | null | undefined): Record
   for (const [key, value] of Object.entries(doc)) {
     if (key === '_id') {
       out.id = value instanceof ObjectId ? value.toHexString() : String(value);
+      continue;
+    }
+    if (key === 'passwordHash') {
       continue;
     }
     if (value instanceof ObjectId) {

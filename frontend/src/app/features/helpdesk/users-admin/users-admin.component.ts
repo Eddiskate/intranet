@@ -29,6 +29,7 @@ export class UsersAdminComponent implements OnInit {
     department: ['', Validators.required],
     role: this.fb.nonNullable.control<'STAFF' | 'AGENT' | 'ADMIN'>('AGENT'),
     groupIds: this.fb.nonNullable.control<string[]>([]),
+    password: [''],
   });
 
   ngOnInit(): void {
@@ -66,6 +67,7 @@ export class UsersAdminComponent implements OnInit {
       department: '',
       role: 'AGENT',
       groupIds: [],
+      password: '',
     });
   }
 
@@ -78,6 +80,7 @@ export class UsersAdminComponent implements OnInit {
       department: user.department,
       role: user.role,
       groupIds: user.groups?.map((g) => g.groupId) ?? [],
+      password: '',
     });
   }
 
@@ -99,10 +102,20 @@ export class UsersAdminComponent implements OnInit {
       return;
     }
 
+    const raw = this.form.getRawValue();
+    const id = this.editingId();
+    if (!id && (!raw.password || raw.password.length < 4)) {
+      this.error.set('Dla nowego użytkownika podaj hasło (min. 4 znaki).');
+      return;
+    }
+
     this.saving.set(true);
     this.error.set(null);
-    const payload = this.form.getRawValue();
-    const id = this.editingId();
+    const { password, ...rest } = raw;
+    const payload = {
+      ...rest,
+      ...(password ? { password } : {}),
+    };
     const req = id
       ? this.api.updateUser(id, payload)
       : this.api.createUser(payload);

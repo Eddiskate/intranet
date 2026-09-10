@@ -7,8 +7,12 @@
       (np. Informatyka) → wypełnij formularz → „Wyślij zgłoszenie”.
     </p>
     <div class="hero__actions">
-      <a routerLink="/helpdesk/dashboard" class="btn btn--ghost">Dashboard agenta</a>
-      <a routerLink="/helpdesk/users" class="btn btn--ghost">Użytkownicy</a>
+      @if (auth.isLoggedIn()) {
+        <a routerLink="/helpdesk/dashboard" class="btn btn--ghost">Dashboard agenta</a>
+        <a routerLink="/helpdesk/users" class="btn btn--ghost">Użytkownicy</a>
+      } @else {
+        <a routerLink="/login" class="btn btn--ghost">Zaloguj się (panel agenta)</a>
+      }
     </div>
   </div>
   <aside class="notice">

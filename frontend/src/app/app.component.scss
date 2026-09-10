@@ -110,6 +110,65 @@ nav {
   }
 }
 
+.login-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(135deg, #27272a, #09090b);
+  color: #fafafa;
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  transition: transform 0.15s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+html[data-theme='dark'] .login-link {
+  background: linear-gradient(135deg, #3f3f46, #18181b);
+  border-color: rgba(244, 244, 245, 0.18);
+}
+
+.auth-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  border-radius: 999px;
+  padding: 0.25rem 0.35rem 0.25rem 0.85rem;
+}
+
+.auth-chip__name {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink);
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-chip__out {
+  border: none;
+  background: var(--surface-strong);
+  color: var(--ink-muted);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ink);
+  }
+}
+
 .content {
   width: 90%;
   margin: 0 auto;

@@ -1,9 +1,9 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../core/services/auth.service';
 import { HelpdeskApiService } from '../../../core/services/helpdesk-api.service';
-import { SessionService } from '../../../core/services/session.service';
 import { Ticket, TicketStatus, User } from '../../../core/models/helpdesk.models';
 
 @Component({
@@ -15,16 +15,12 @@ import { Ticket, TicketStatus, User } from '../../../core/models/helpdesk.models
 })
 export class HelpdeskDashboardComponent implements OnInit {
   private readonly api = inject(HelpdeskApiService);
-  readonly session = inject(SessionService);
+  readonly auth = inject(AuthService);
 
   readonly tickets = signal<Ticket[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly statusFilter = signal<string>('');
-
-  readonly agentUsers = computed(() =>
-    this.session.allUsers().filter((u) => u.role === 'AGENT' || u.role === 'ADMIN')
-  );
 
   readonly statusLabels: Record<TicketStatus, string> = {
     OPEN: 'Otwarte',
@@ -34,20 +30,6 @@ export class HelpdeskDashboardComponent implements OnInit {
   };
 
   ngOnInit(): void {
-    this.api.getUsers().subscribe({
-      next: (users) => {
-        this.session.setUsers(users);
-        this.loadTickets();
-      },
-      error: () => {
-        this.error.set('Nie udało się pobrać użytkowników');
-        this.loading.set(false);
-      },
-    });
-  }
-
-  onUserChange(userId: string): void {
-    this.session.setUser(userId);
     this.loadTickets();
   }
 
@@ -57,17 +39,9 @@ export class HelpdeskDashboardComponent implements OnInit {
   }
 
   loadTickets(): void {
-    const userId = this.session.userId();
-    if (!userId) {
-      this.tickets.set([]);
-      this.loading.set(false);
-      return;
-    }
-
     this.loading.set(true);
     this.api
       .getTickets({
-        userId,
         status: this.statusFilter() || undefined,
       })
       .subscribe({

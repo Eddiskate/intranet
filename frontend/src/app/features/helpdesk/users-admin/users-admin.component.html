@@ -59,6 +59,29 @@
       </select>
     </div>
 
+    <div class="field">
+      <label for="password">
+        Hasło
+        @if (!editingId()) {
+          <span>*</span>
+        }
+      </label>
+      <input
+        id="password"
+        type="password"
+        formControlName="password"
+        [attr.placeholder]="editingId() ? 'Pozostaw puste, aby nie zmieniać' : 'Min. 4 znaki'"
+        autocomplete="new-password"
+      />
+      <small class="hint">
+        @if (editingId()) {
+          Wypełnij tylko gdy chcesz zmienić hasło.
+        } @else {
+          Wymagane przy tworzeniu konta.
+        }
+      </small>
+    </div>
+
     <fieldset>
       <legend>Grupy zgłoszeń</legend>
       <p class="hint">Agent widzi w dashboardzie zgłoszenia z wybranych grup.</p>

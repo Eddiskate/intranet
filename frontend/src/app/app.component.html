@@ -13,8 +13,10 @@
         <a routerLink="/helpdesk" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
           Zgłoszenia
         </a>
-        <a routerLink="/helpdesk/dashboard" routerLinkActive="active">Dashboard</a>
-        <a routerLink="/helpdesk/users" routerLinkActive="active">Użytkownicy</a>
+        @if (auth.isLoggedIn()) {
+          <a routerLink="/helpdesk/dashboard" routerLinkActive="active">Dashboard</a>
+          <a routerLink="/helpdesk/users" routerLinkActive="active">Użytkownicy</a>
+        }
       </nav>
 
       <button
@@ -26,6 +28,15 @@
       >
         {{ theme.mode() === 'dark' ? 'Tryb jasny' : 'Tryb ciemny' }}
       </button>
+
+      @if (auth.isLoggedIn()) {
+        <div class="auth-chip">
+          <span class="auth-chip__name">{{ auth.displayName() }}</span>
+          <button type="button" class="auth-chip__out" (click)="logout()">Wyloguj</button>
+        </div>
+      } @else {
+        <a routerLink="/login" class="login-link">Zaloguj się</a>
+      }
     </div>
   </header>
 

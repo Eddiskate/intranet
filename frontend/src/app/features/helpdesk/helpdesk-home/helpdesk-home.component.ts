@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 import { HelpdeskApiService } from '../../../core/services/helpdesk-api.service';
 import { TicketGroup } from '../../../core/models/helpdesk.models';
 
@@ -12,6 +13,7 @@ import { TicketGroup } from '../../../core/models/helpdesk.models';
 })
 export class HelpdeskHomeComponent implements OnInit {
   private readonly api = inject(HelpdeskApiService);
+  readonly auth = inject(AuthService);
 
   readonly groups = signal<TicketGroup[]>([]);
   readonly loading = signal(true);

@@ -4,15 +4,23 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import { connectDb } from './lib/db';
+import { backfillMissingPasswords, DEFAULT_SEED_PASSWORD } from './lib/seed-defaults';
 import usersRouter from './routes/users';
 import groupsRouter from './routes/groups';
 import ticketsRouter from './routes/tickets';
 import workersRouter from './routes/workers';
 import setupRouter from './routes/setup';
+import authRouter from './routes/auth';
 
 async function main() {
   await connectDb();
   console.log('MongoDB connected');
+  const filled = await backfillMissingPasswords();
+  if (filled > 0) {
+    console.log(
+      `Ustawiono hasło domyślne "${DEFAULT_SEED_PASSWORD}" dla ${filled} kont bez hasła.`
+    );
+  }
 
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
@@ -49,6 +57,7 @@ async function main() {
     res.json({ ip });
   });
 
+  app.use('/api/auth', authRouter);
   app.use('/api/users', usersRouter);
   app.use('/api/groups', groupsRouter);
   app.use('/api/tickets', ticketsRouter);

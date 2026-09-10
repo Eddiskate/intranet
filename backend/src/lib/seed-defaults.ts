@@ -1,6 +1,10 @@
 import { ObjectId } from 'mongodb';
+import { hashPassword } from './auth';
 import { cols } from './db';
 import { loadGroupWithMembers } from './relations';
+
+/** Domyślne hasło seedowanych kont (zmień po pierwszym logowaniu). */
+export const DEFAULT_SEED_PASSWORD = 'helpdesk';
 
 const groups = [
   {
@@ -47,6 +51,7 @@ const agents: Array<{
 export async function seedDefaults() {
   const now = new Date();
   const bySlug: Record<string, ObjectId> = {};
+  const passwordHash = await hashPassword(DEFAULT_SEED_PASSWORD);
 
   for (const group of groups) {
     const existing = await cols.groups().findOne({ slug: group.slug });
@@ -85,6 +90,7 @@ export async function seedDefaults() {
             department: agent.department,
             role: 'AGENT',
             updatedAt: now,
+            ...(!existingUser.passwordHash ? { passwordHash } : {}),
           },
         }
       );
@@ -97,6 +103,7 @@ export async function seedDefaults() {
         email: agent.email,
         department: agent.department,
         role: 'AGENT',
+        passwordHash,
         createdAt: now,
         updatedAt: now,
       });
@@ -114,7 +121,8 @@ export async function seedDefaults() {
   }
 
   const adminEmail = 'admin@szpital.local';
-  if (!(await cols.users().findOne({ email: adminEmail }))) {
+  const existingAdmin = await cols.users().findOne({ email: adminEmail });
+  if (!existingAdmin) {
     await cols.users().insertOne({
       _id: new ObjectId(),
       firstName: 'Admin',
@@ -122,9 +130,15 @@ export async function seedDefaults() {
       email: adminEmail,
       department: 'Administracja',
       role: 'ADMIN',
+      passwordHash,
       createdAt: now,
       updatedAt: now,
     });
+  } else if (!existingAdmin.passwordHash) {
+    await cols.users().updateOne(
+      { _id: existingAdmin._id },
+      { $set: { passwordHash, updatedAt: now } }
+    );
   }
 
   const allGroups = await cols.groups().find().sort({ name: 1 }).toArray();
@@ -147,4 +161,27 @@ export async function seedDefaults() {
     users: await cols.users().countDocuments(),
     summary,
   };
+}
+
+/** Dla kont bez hasła (migracja) — ustawia domyślne hasło seed. */
+export async function backfillMissingPasswords(): Promise<number> {
+  const missing = await cols
+    .users()
+    .find({
+      $or: [
+        { passwordHash: { $exists: false } },
+        { passwordHash: '' },
+      ],
+    } as import('mongodb').Filter<import('../types').UserDoc>)
+    .project({ _id: 1 })
+    .toArray();
+
+  if (!missing.length) return 0;
+
+  const passwordHash = await hashPassword(DEFAULT_SEED_PASSWORD);
+  await cols.users().updateMany(
+    { _id: { $in: missing.map((u) => u._id) } },
+    { $set: { passwordHash, updatedAt: new Date() } }
+  );
+  return missing.length;
 }

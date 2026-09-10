@@ -49,6 +49,7 @@ export class HelpdeskApiService {
     department: string;
     role?: string;
     groupIds?: string[];
+    password?: string;
   }): Observable<User> {
     return this.http.post<User>(`${this.base}/users`, payload);
   }
@@ -62,6 +63,7 @@ export class HelpdeskApiService {
       department: string;
       role?: string;
       groupIds?: string[];
+      password?: string;
     }
   ): Observable<User> {
     return this.http.put<User>(`${this.base}/users/${id}`, payload);
