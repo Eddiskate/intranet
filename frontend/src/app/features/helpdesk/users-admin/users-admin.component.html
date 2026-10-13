@@ -1,79 +1,83 @@
-<a routerLink="/helpdesk" class="back">← Helpdesk</a>
+<a routerLink="/helpdesk" class="mb-5 inline-block text-sm font-semibold text-ink-muted no-underline hover:text-brand">← Helpdesk</a>
 
-<header class="page-head">
+<header class="mb-6 flex flex-wrap items-end justify-between gap-4">
   <div>
-    <p class="eyebrow">Administracja</p>
-    <h1>Użytkownicy</h1>
-    <p class="muted">Imię, nazwisko, dział oraz przypisanie do grup zgłoszeń.</p>
+    <p class="mb-1 text-xs font-bold tracking-[0.12em] text-ink-muted uppercase">Administracja</p>
+    <h1 class="font-display m-0 mb-2 text-3xl text-ink">Użytkownicy</h1>
+    <p class="m-0 text-ink-muted">Imię, nazwisko, dział oraz przypisanie do grup zgłoszeń.</p>
   </div>
-  <button type="button" class="btn btn--ghost" (click)="startCreate()">Nowy użytkownik</button>
+  <button type="button" class="ui-btn-ghost" (click)="startCreate()">Nowy użytkownik</button>
 </header>
 
 @if (error()) {
-  <p class="banner-error">{{ error() }}</p>
+  <p class="mb-4 rounded-xl bg-red-50 px-3.5 py-3 text-sm font-semibold text-red-700 dark:bg-red-950/50 dark:text-red-300">
+    {{ error() }}
+  </p>
 }
 
-<div class="layout">
-  <form class="panel form" [formGroup]="form" (ngSubmit)="save()">
-    <h2>{{ editingId() ? 'Edycja' : 'Nowy użytkownik' }}</h2>
+<div class="grid gap-6 xl:grid-cols-[22rem_1fr]">
+  <form class="ui-card grid h-fit gap-4 p-5" [formGroup]="form" (ngSubmit)="save()">
+    <h2 class="font-display m-0 text-xl text-ink">{{ editingId() ? 'Edycja' : 'Nowy użytkownik' }}</h2>
 
-    <div class="field">
-      <label for="firstName">Imię <span>*</span></label>
-      <input id="firstName" formControlName="firstName" />
+    <div class="grid gap-1.5">
+      <label class="ui-label" for="firstName">Imię <span class="text-red-600">*</span></label>
+      <input id="firstName" class="ui-input" formControlName="firstName" />
       @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
-        <small class="field-error">Podaj imię</small>
+        <small class="text-xs font-semibold text-red-600">Podaj imię</small>
       }
     </div>
-    <div class="field">
-      <label for="lastName">Nazwisko <span>*</span></label>
-      <input id="lastName" formControlName="lastName" />
+    <div class="grid gap-1.5">
+      <label class="ui-label" for="lastName">Nazwisko <span class="text-red-600">*</span></label>
+      <input id="lastName" class="ui-input" formControlName="lastName" />
       @if (form.controls.lastName.touched && form.controls.lastName.invalid) {
-        <small class="field-error">Podaj nazwisko</small>
+        <small class="text-xs font-semibold text-red-600">Podaj nazwisko</small>
       }
     </div>
-    <div class="field">
-      <label for="email">E-mail <span>*</span></label>
-      <input id="email" type="email" formControlName="email" />
+    <div class="grid gap-1.5">
+      <label class="ui-label" for="email">E-mail <span class="text-red-600">*</span></label>
+      <input id="email" class="ui-input" type="email" formControlName="email" />
       @if (form.controls.email.touched && form.controls.email.invalid) {
-        <small class="field-error">Podaj poprawny e-mail</small>
+        <small class="text-xs font-semibold text-red-600">Podaj poprawny e-mail</small>
       }
     </div>
-    <div class="field">
-      <label for="department">Dział <span>*</span></label>
-      <select id="department" formControlName="department">
+    <div class="grid gap-1.5">
+      <label class="ui-label" for="department">Dział <span class="text-red-600">*</span></label>
+      <select id="department" class="ui-input" formControlName="department">
         <option value="" disabled>Wybierz dział…</option>
         @for (dep of departments(); track dep) {
           <option [value]="dep">{{ dep }}</option>
         }
       </select>
       @if (form.controls.department.touched && form.controls.department.invalid) {
-        <small class="field-error">Wybierz dział z listy</small>
+        <small class="text-xs font-semibold text-red-600">Wybierz dział z listy</small>
       }
     </div>
-    <div class="field">
-      <label for="role">Rola</label>
-      <select id="role" formControlName="role">
+    <div class="grid gap-1.5">
+      <label class="ui-label" for="role">Rola</label>
+      <select id="role" class="ui-input" formControlName="role">
+        <option value="USER">Użytkownik</option>
         <option value="STAFF">Pracownik</option>
         <option value="AGENT">Agent helpdesku</option>
         <option value="ADMIN">Administrator</option>
       </select>
     </div>
 
-    <div class="field">
-      <label for="password">
+    <div class="grid gap-1.5">
+      <label class="ui-label" for="password">
         Hasło
         @if (!editingId()) {
-          <span>*</span>
+          <span class="text-red-600">*</span>
         }
       </label>
       <input
         id="password"
+        class="ui-input"
         type="password"
         formControlName="password"
         [attr.placeholder]="editingId() ? 'Pozostaw puste, aby nie zmieniać' : 'Min. 4 znaki'"
         autocomplete="new-password"
       />
-      <small class="hint">
+      <small class="text-xs text-ink-muted">
         @if (editingId()) {
           Wypełnij tylko gdy chcesz zmienić hasło.
         } @else {
@@ -82,30 +86,33 @@
       </small>
     </div>
 
-    <fieldset>
-      <legend>Grupy zgłoszeń</legend>
-      <p class="hint">Agent widzi w dashboardzie zgłoszenia z wybranych grup.</p>
-      @for (group of groups(); track group.id) {
-        <label class="check">
-          <input
-            type="checkbox"
-            [checked]="isGroupSelected(group.id)"
-            (change)="toggleGroup(group.id, $any($event.target).checked)"
-          />
-          {{ group.name }}
-        </label>
-      }
+    <fieldset class="rounded-xl border border-line p-3">
+      <legend class="px-1 text-sm font-bold text-ink">Grupy zgłoszeń</legend>
+      <p class="mb-3 text-xs text-ink-muted">Agent widzi w dashboardzie zgłoszenia z wybranych grup.</p>
+      <div class="grid gap-2">
+        @for (group of groups(); track group.id) {
+          <label class="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              class="size-4 rounded border-line-strong"
+              [checked]="isGroupSelected(group.id)"
+              (change)="toggleGroup(group.id, $any($event.target).checked)"
+            />
+            {{ group.name }}
+          </label>
+        }
+      </div>
     </fieldset>
 
-    <button class="btn btn--primary" type="submit" [disabled]="saving()">
+    <button class="ui-btn-primary" type="submit" [disabled]="saving()">
       {{ saving() ? 'Zapisywanie…' : 'Zapisz' }}
     </button>
   </form>
 
-  <div class="panel list">
-    <h2>Lista ({{ users().length }})</h2>
-    <div class="table-wrap">
-      <table>
+  <div class="ui-card p-5">
+    <h2 class="font-display m-0 mb-4 text-xl text-ink">Lista ({{ users().length }})</h2>
+    <div class="ui-table-wrap border-0 shadow-none">
+      <table class="ui-table">
         <thead>
           <tr>
             <th>Imię i nazwisko</th>
@@ -119,15 +126,15 @@
           @for (user of users(); track user.id) {
             <tr>
               <td>
-                <strong>{{ user.firstName }} {{ user.lastName }}</strong>
-                <div class="email">{{ user.email }}</div>
+                <strong class="text-ink">{{ user.firstName }} {{ user.lastName }}</strong>
+                <div class="text-xs text-ink-muted">{{ user.email }}</div>
               </td>
               <td>{{ user.department }}</td>
               <td>{{ user.role }}</td>
               <td>{{ groupNames(user) }}</td>
-              <td class="row-actions">
-                <button type="button" class="linkish" (click)="startEdit(user)">Edytuj</button>
-                <button type="button" class="linkish danger" (click)="remove(user)">Usuń</button>
+              <td class="whitespace-nowrap">
+                <button type="button" class="mr-2 text-sm font-bold text-brand hover:underline" (click)="startEdit(user)">Edytuj</button>
+                <button type="button" class="text-sm font-bold text-red-600 hover:underline" (click)="remove(user)">Usuń</button>
               </td>
             </tr>
           }

@@ -5,12 +5,14 @@ import fs from 'fs';
 import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 import { ORGANIZATIONAL_UNITS } from '../data/departments';
-import { requireAuth, type AuthedRequest } from '../lib/auth';
+import { requireAuth, type AuthedRequest, verifyToken } from '../lib/auth';
 import { cols, routeParam, serialize, toObjectId } from '../lib/db';
+import { ensureRequesterUser } from '../lib/requester-user';
 import { ensureWorker } from '../lib/workers';
 import { sendCommentNotification, sendTicketCreatedEmails } from '../lib/mail';
 import { findTicketByIdParam, loadGroupWithMembers, loadTicket } from '../lib/relations';
-import type { TicketStatus } from '../types';
+import { addTimelineEvent } from '../lib/timeline';
+import type { TicketStatus, UserRole } from '../types';
 
 const router = Router();
 
@@ -43,10 +45,30 @@ const ticketSchema = z.object({
 });
 
 const commentSchema = z.object({
-  authorEmail: z.string().email(),
+  authorEmail: z.string().email().optional(),
   authorName: z.string().optional().nullable(),
   body: z.string().min(1),
 });
+
+const statusLabels: Record<TicketStatus, string> = {
+  OPEN: 'Otwarte',
+  IN_PROGRESS: 'W trakcie',
+  RESOLVED: 'Rozwiązane',
+  CLOSED: 'Zamknięte',
+};
+
+function optionalAuth(req: AuthedRequest): void {
+  const header = req.headers.authorization;
+  const token = header?.startsWith('Bearer ') ? header.slice(7) : null;
+  if (token) {
+    const user = verifyToken(token);
+    if (user) req.user = user;
+  }
+}
+
+function isRequesterRole(role: string): boolean {
+  return role === 'USER' || role === 'STAFF';
+}
 
 router.get('/meta/organizational-units', (_req, res) => {
   res.json(ORGANIZATIONAL_UNITS);
@@ -54,23 +76,30 @@ router.get('/meta/organizational-units', (_req, res) => {
 
 router.get('/', requireAuth, async (req: AuthedRequest, res) => {
   const { groupId, status } = req.query;
-  const userId = req.user!.id;
+  const authUser = req.user!;
 
-  const memberships = await cols.members().find({ userId: toObjectId(userId) }).toArray();
-  let groupIdsFilter: ObjectId[] = memberships.map((m) => m.groupId);
-  if (groupIdsFilter.length === 0) {
-    res.json([]);
-    return;
+  const filter: Record<string, unknown> = {};
+
+  if (isRequesterRole(authUser.role)) {
+    filter.requesterEmail = authUser.email.toLowerCase();
+  } else {
+    const memberships = await cols.members().find({ userId: toObjectId(authUser.id) }).toArray();
+    let groupIdsFilter: ObjectId[] = memberships.map((m) => m.groupId);
+    if (groupIdsFilter.length === 0 && authUser.role !== 'ADMIN') {
+      res.json([]);
+      return;
+    }
+    if (authUser.role === 'ADMIN' && groupIdsFilter.length === 0) {
+      // admin bez grup widzi wszystko
+    } else {
+      if (typeof groupId === 'string' && groupId) {
+        const gid = toObjectId(groupId);
+        groupIdsFilter = groupIdsFilter.filter((id) => id.equals(gid));
+      }
+      filter.groupId = { $in: groupIdsFilter };
+    }
   }
 
-  if (typeof groupId === 'string' && groupId) {
-    const gid = toObjectId(groupId);
-    groupIdsFilter = groupIdsFilter.filter((id) => id.equals(gid));
-  }
-
-  const filter: Record<string, unknown> = {
-    groupId: { $in: groupIdsFilter },
-  };
   if (typeof status === 'string' && status) {
     filter.status = status;
   }
@@ -82,13 +111,14 @@ router.get('/', requireAuth, async (req: AuthedRequest, res) => {
   res.json(payload);
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: AuthedRequest, res) => {
+  optionalAuth(req);
   const ticket = await findTicketByIdParam(routeParam(req.params.id));
   if (!ticket) {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
     return;
   }
-  res.json(await loadTicket(ticket, { comments: true }));
+  res.json(await loadTicket(ticket, { comments: true, timeline: true }));
 });
 
 router.post('/', upload.array('attachments', 5), async (req, res) => {
@@ -123,6 +153,13 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
     phone: parsed.data.phone,
   });
 
+  const { user: requester, created: accountCreated } = await ensureRequesterUser({
+    fullName: parsed.data.requesterName,
+    email: parsed.data.requesterEmail,
+    phone: parsed.data.phone,
+    department: parsed.data.organizationalUnit,
+  });
+
   const files = (req.files as Express.Multer.File[]) ?? [];
   const now = new Date();
   const ticketId = new ObjectId();
@@ -131,6 +168,7 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
     _id: ticketId,
     groupId: groupObjectId,
     assigneeId: null,
+    requesterUserId: requester._id,
     requesterName: parsed.data.requesterName,
     requesterEmail: parsed.data.requesterEmail,
     organizationalUnit: parsed.data.organizationalUnit,
@@ -158,8 +196,22 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
     );
   }
 
+  await addTimelineEvent({
+    ticketId,
+    type: 'CREATED',
+    message: `Utworzono zgłoszenie „${parsed.data.subject}”`,
+    actorEmail: parsed.data.requesterEmail,
+    actorName: parsed.data.requesterName,
+    actorRole: 'USER',
+    at: now,
+    meta: {
+      groupName: String((groupPayload as { name?: string }).name ?? ''),
+      accountCreated,
+    },
+  });
+
   const ticket = await cols.tickets().findOne({ _id: ticketId });
-  const full = await loadTicket(ticket!, { comments: true });
+  const full = await loadTicket(ticket!, { comments: true, timeline: true });
 
   const agentEmails = ((groupPayload.members as Array<{ user?: { email?: string } | null }>) || [])
     .map((m) => m.user?.email)
@@ -172,12 +224,13 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
     requesterName: parsed.data.requesterName,
     requesterEmail: parsed.data.requesterEmail,
     agentEmails,
+    accountCreated,
   });
 
   res.status(201).json(full);
 });
 
-router.patch('/:id/status', requireAuth, async (req, res) => {
+router.patch('/:id/status', requireAuth, async (req: AuthedRequest, res) => {
   const parsed = z
     .object({
       status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']),
@@ -195,16 +248,36 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
     return;
   }
 
+  if (isRequesterRole(req.user!.role)) {
+    res.status(403).json({ error: 'Tylko agent może zmieniać status' });
+    return;
+  }
+
+  const prev = existing.status;
+  const next = parsed.data.status as TicketStatus;
+
   await cols.tickets().updateOne(
     { _id: existing._id },
-    { $set: { status: parsed.data.status as TicketStatus, updatedAt: new Date() } }
+    { $set: { status: next, updatedAt: new Date() } }
   );
 
+  if (prev !== next) {
+    await addTimelineEvent({
+      ticketId: existing._id,
+      type: 'STATUS_CHANGED',
+      message: `Status: ${statusLabels[prev]} → ${statusLabels[next]}`,
+      actorEmail: req.user!.email,
+      actorName: `${req.user!.firstName} ${req.user!.lastName}`,
+      actorRole: req.user!.role as UserRole,
+      meta: { from: prev, to: next },
+    });
+  }
+
   const ticket = await cols.tickets().findOne({ _id: existing._id });
-  res.json(await loadTicket(ticket!, { comments: true }));
+  res.json(await loadTicket(ticket!, { comments: true, timeline: true }));
 });
 
-router.patch('/:id/assignee', requireAuth, async (req, res) => {
+router.patch('/:id/assignee', requireAuth, async (req: AuthedRequest, res) => {
   const parsed = z
     .object({
       assigneeId: z.string().nullable(),
@@ -216,6 +289,11 @@ router.patch('/:id/assignee', requireAuth, async (req, res) => {
     return;
   }
 
+  if (isRequesterRole(req.user!.role)) {
+    res.status(403).json({ error: 'Tylko agent może przypisywać zgłoszenia' });
+    return;
+  }
+
   const existing = await findTicketByIdParam(routeParam(req.params.id));
   if (!existing) {
     res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
@@ -223,6 +301,7 @@ router.patch('/:id/assignee', requireAuth, async (req, res) => {
   }
 
   const assigneeId = parsed.data.assigneeId;
+  let assigneeName = 'Nieprzypisane';
   if (assigneeId) {
     const isMember = await cols.members().findOne({
       groupId: existing.groupId,
@@ -232,6 +311,8 @@ router.patch('/:id/assignee', requireAuth, async (req, res) => {
       res.status(400).json({ error: 'Można przypisać tylko osobę z grupy zgłoszenia' });
       return;
     }
+    const assignee = await cols.users().findOne({ _id: toObjectId(assigneeId) });
+    if (assignee) assigneeName = `${assignee.firstName} ${assignee.lastName}`;
   }
 
   await cols.tickets().updateOne(
@@ -244,8 +325,18 @@ router.patch('/:id/assignee', requireAuth, async (req, res) => {
     }
   );
 
+  await addTimelineEvent({
+    ticketId: existing._id,
+    type: 'ASSIGNEE_CHANGED',
+    message: `Przypisano do: ${assigneeName}`,
+    actorEmail: req.user!.email,
+    actorName: `${req.user!.firstName} ${req.user!.lastName}`,
+    actorRole: req.user!.role as UserRole,
+    meta: { assigneeId },
+  });
+
   const ticket = await cols.tickets().findOne({ _id: existing._id });
-  res.json(await loadTicket(ticket!, { comments: true }));
+  res.json(await loadTicket(ticket!, { comments: true, timeline: true }));
 });
 
 router.get('/:id/comments', async (req, res) => {
@@ -263,7 +354,9 @@ router.get('/:id/comments', async (req, res) => {
   res.json(comments.map((c) => serialize(c)!));
 });
 
-router.post('/:id/comments', async (req, res) => {
+router.post('/:id/comments', async (req: AuthedRequest, res) => {
+  optionalAuth(req);
+
   const parsed = commentSchema.safeParse({
     ...req.body,
     authorEmail:
@@ -283,23 +376,49 @@ router.post('/:id/comments', async (req, res) => {
   }
 
   const groupPayload = await loadGroupWithMembers(ticket.groupId);
-  const authorName = parsed.data.authorName?.trim() || null;
+
+  let authorEmail = parsed.data.authorEmail || '';
+  let authorName = parsed.data.authorName?.trim() || null;
+  let authorRole: UserRole | null = null;
+
+  if (req.user) {
+    authorEmail = req.user.email.toLowerCase();
+    authorName = `${req.user.firstName} ${req.user.lastName}`;
+    authorRole = req.user.role as UserRole;
+  }
+
+  if (!authorEmail) {
+    res.status(400).json({ error: 'Podaj e-mail autora lub zaloguj się' });
+    return;
+  }
 
   await ensureWorker({
-    fullName: authorName || parsed.data.authorEmail.split('@')[0],
-    email: parsed.data.authorEmail,
+    fullName: authorName || authorEmail.split('@')[0],
+    email: authorEmail,
     phone: '',
   });
 
+  const now = new Date();
   const comment = {
     _id: new ObjectId(),
     ticketId: ticket._id,
-    authorEmail: parsed.data.authorEmail,
+    authorEmail,
     authorName,
+    authorRole,
     body: parsed.data.body.trim(),
-    createdAt: new Date(),
+    createdAt: now,
   };
   await cols.comments().insertOne(comment);
+
+  await addTimelineEvent({
+    ticketId: ticket._id,
+    type: 'COMMENT',
+    message: `Komentarz: ${comment.body.slice(0, 120)}${comment.body.length > 120 ? '…' : ''}`,
+    actorEmail: authorEmail,
+    actorName: authorName,
+    actorRole: authorRole,
+    at: now,
+  });
 
   const agentEmails = ((groupPayload?.members as Array<{ user?: { email?: string } | null }>) || [])
     .map((m) => m.user?.email)

@@ -50,9 +50,9 @@ export async function loadGroupWithMembers(groupId: ObjectId, withTicketCount = 
 
 export async function loadTicket(
   ticket: TicketDoc,
-  opts: { comments?: boolean; commentCount?: boolean } = {}
+  opts: { comments?: boolean; commentCount?: boolean; timeline?: boolean } = {}
 ) {
-  const [groupPayload, assignee, attachments, comments, commentCount] = await Promise.all([
+  const [groupPayload, assignee, attachments, comments, commentCount, timeline] = await Promise.all([
     loadGroupWithMembers(ticket.groupId, false),
     ticket.assigneeId ? cols.users().findOne({ _id: ticket.assigneeId }) : Promise.resolve(null),
     cols.attachments().find({ ticketId: ticket._id }).toArray(),
@@ -66,6 +66,9 @@ export async function loadTicket(
     opts.commentCount
       ? cols.comments().countDocuments({ ticketId: ticket._id })
       : Promise.resolve(0),
+    opts.timeline
+      ? cols.timeline().find({ ticketId: ticket._id }).sort({ createdAt: 1 }).toArray()
+      : Promise.resolve([]),
   ]);
 
   const out: Record<string, unknown> = {
@@ -80,6 +83,9 @@ export async function loadTicket(
   }
   if (opts.commentCount) {
     out._count = { comments: commentCount };
+  }
+  if (opts.timeline) {
+    out.timeline = timeline.map((e) => serialize(e)!);
   }
 
   return out;

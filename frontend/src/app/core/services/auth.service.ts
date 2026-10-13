@@ -26,6 +26,20 @@ export class AuthService {
     return u ? `${u.firstName} ${u.lastName}` : '';
   });
 
+  readonly isAgent = computed(() => {
+    const role = this.userSignal()?.role;
+    return role === 'AGENT' || role === 'ADMIN';
+  });
+
+  readonly isRequester = computed(() => {
+    const role = this.userSignal()?.role;
+    return role === 'USER' || role === 'STAFF';
+  });
+
+  homeAfterLogin(): string {
+    return this.isAgent() ? '/helpdesk/dashboard' : '/helpdesk/my';
+  }
+
   login(email: string, password: string): Observable<User> {
     return this.http
       .post<{ token: string; user: User }>(`${this.base}/auth/login`, {

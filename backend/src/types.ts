@@ -1,7 +1,13 @@
 import type { ObjectId } from 'mongodb';
 
-export type UserRole = 'STAFF' | 'AGENT' | 'ADMIN';
+export type UserRole = 'USER' | 'STAFF' | 'AGENT' | 'ADMIN';
 export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+
+export type TimelineEventType =
+  | 'CREATED'
+  | 'STATUS_CHANGED'
+  | 'ASSIGNEE_CHANGED'
+  | 'COMMENT';
 
 export interface UserDoc {
   _id: ObjectId;
@@ -9,6 +15,7 @@ export interface UserDoc {
   lastName: string;
   email: string;
   department: string;
+  phone?: string;
   role: UserRole;
   passwordHash?: string;
   createdAt: Date;
@@ -34,6 +41,7 @@ export interface TicketDoc {
   _id: ObjectId;
   groupId: ObjectId;
   assigneeId?: ObjectId | null;
+  requesterUserId?: ObjectId | null;
   requesterName: string;
   requesterEmail: string;
   organizationalUnit: string;
@@ -72,6 +80,19 @@ export interface CommentDoc {
   ticketId: ObjectId;
   authorEmail: string;
   authorName?: string | null;
+  authorRole?: UserRole | null;
   body: string;
+  createdAt: Date;
+}
+
+export interface TimelineEventDoc {
+  _id: ObjectId;
+  ticketId: ObjectId;
+  type: TimelineEventType;
+  message: string;
+  actorEmail?: string | null;
+  actorName?: string | null;
+  actorRole?: UserRole | null;
+  meta?: Record<string, unknown> | null;
   createdAt: Date;
 }

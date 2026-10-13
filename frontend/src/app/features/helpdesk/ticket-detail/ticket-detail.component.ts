@@ -3,12 +3,14 @@ import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AuthService } from '../../../core/services/auth.service';
 import { HelpdeskApiService } from '../../../core/services/helpdesk-api.service';
 import {
   Attachment,
   Ticket,
   TicketComment,
   TicketStatus,
+  TimelineEvent,
   User,
 } from '../../../core/models/helpdesk.models';
 import { environment } from '../../../../environments/environment';
@@ -27,9 +29,11 @@ export class TicketDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly fb = inject(FormBuilder);
+  readonly auth = inject(AuthService);
 
   readonly ticket = signal<Ticket | null>(null);
   readonly comments = signal<TicketComment[]>([]);
+  readonly timeline = signal<TimelineEvent[]>([]);
   readonly error = signal<string | null>(null);
   readonly preview = signal<Attachment | null>(null);
   readonly commentError = signal<string | null>(null);
@@ -37,7 +41,7 @@ export class TicketDetailComponent implements OnInit {
 
   readonly commentForm = this.fb.nonNullable.group({
     authorName: [''],
-    authorEmail: ['', [Validators.required, Validators.email]],
+    authorEmail: ['', [Validators.email]],
     body: ['', Validators.required],
   });
 
@@ -49,16 +53,24 @@ export class TicketDetailComponent implements OnInit {
   };
 
   ngOnInit(): void {
-    const saved = localStorage.getItem(COMMENT_DRAFT_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as { authorName?: string; authorEmail?: string };
-        this.commentForm.patchValue({
-          authorName: parsed.authorName || '',
-          authorEmail: parsed.authorEmail || '',
-        });
-      } catch {
-        /* ignore */
+    const user = this.auth.user();
+    if (user) {
+      this.commentForm.patchValue({
+        authorName: `${user.firstName} ${user.lastName}`,
+        authorEmail: user.email,
+      });
+    } else {
+      const saved = localStorage.getItem(COMMENT_DRAFT_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as { authorName?: string; authorEmail?: string };
+          this.commentForm.patchValue({
+            authorName: parsed.authorName || '',
+            authorEmail: parsed.authorEmail || '',
+          });
+        } catch {
+          /* ignore */
+        }
       }
     }
 
@@ -67,27 +79,31 @@ export class TicketDetailComponent implements OnInit {
       this.error.set('Brak ID zgłoszenia');
       return;
     }
+    this.reload(id);
+  }
+
+  private reload(id: string): void {
     this.api.getTicket(id).subscribe({
-      next: (ticket) => {
-        this.ticket.set(ticket);
-        this.comments.set(ticket.comments ?? []);
-        if (!this.commentForm.controls.authorEmail.value && ticket.requesterEmail) {
-          this.commentForm.controls.authorEmail.setValue(ticket.requesterEmail);
-          this.commentForm.controls.authorName.setValue(ticket.requesterName);
-        }
-      },
+      next: (ticket) => this.applyTicket(ticket),
       error: () => this.error.set('Nie znaleziono zgłoszenia'),
     });
+  }
+
+  private applyTicket(ticket: Ticket): void {
+    this.ticket.set(ticket);
+    this.comments.set(ticket.comments ?? []);
+    this.timeline.set(ticket.timeline ?? []);
+    if (!this.auth.isLoggedIn() && !this.commentForm.controls.authorEmail.value && ticket.requesterEmail) {
+      this.commentForm.controls.authorEmail.setValue(ticket.requesterEmail);
+      this.commentForm.controls.authorName.setValue(ticket.requesterName);
+    }
   }
 
   setStatus(status: TicketStatus): void {
     const current = this.ticket();
     if (!current) return;
     this.api.updateTicketStatus(current.id, status).subscribe({
-      next: (ticket) => {
-        this.ticket.set(ticket);
-        this.comments.set(ticket.comments ?? this.comments());
-      },
+      next: (ticket) => this.applyTicket(ticket),
     });
   }
 
@@ -95,10 +111,7 @@ export class TicketDetailComponent implements OnInit {
     const current = this.ticket();
     if (!current) return;
     this.api.assignTicket(current.id, assigneeId || null).subscribe({
-      next: (ticket) => {
-        this.ticket.set(ticket);
-        this.comments.set(ticket.comments ?? this.comments());
-      },
+      next: (ticket) => this.applyTicket(ticket),
     });
   }
 
@@ -109,8 +122,17 @@ export class TicketDetailComponent implements OnInit {
   }
 
   submitComment(): void {
-    if (this.commentForm.invalid || !this.ticket()) {
+    const loggedIn = this.auth.isLoggedIn();
+    if (!this.ticket()) return;
+
+    if (!loggedIn) {
+      this.commentForm.controls.authorEmail.addValidators([Validators.required, Validators.email]);
+      this.commentForm.controls.authorEmail.updateValueAndValidity();
+    }
+
+    if (this.commentForm.controls.body.invalid || (!loggedIn && this.commentForm.controls.authorEmail.invalid)) {
       this.commentForm.markAllAsTouched();
+      this.commentError.set(loggedIn ? 'Wpisz treść komentarza.' : 'Podaj e-mail i treść komentarza.');
       return;
     }
 
@@ -118,31 +140,62 @@ export class TicketDetailComponent implements OnInit {
     this.commentError.set(null);
     const value = this.commentForm.getRawValue();
 
-    localStorage.setItem(
-      COMMENT_DRAFT_KEY,
-      JSON.stringify({
-        authorName: value.authorName,
-        authorEmail: value.authorEmail,
-      })
-    );
+    if (!loggedIn) {
+      localStorage.setItem(
+        COMMENT_DRAFT_KEY,
+        JSON.stringify({
+          authorName: value.authorName,
+          authorEmail: value.authorEmail,
+        })
+      );
+    }
 
-    this.api
-      .addComment(this.ticket()!.id, {
-        authorEmail: value.authorEmail.trim().toLowerCase(),
-        authorName: value.authorName.trim() || undefined,
-        body: value.body.trim(),
-      })
-      .subscribe({
-        next: (comment) => {
-          this.comments.update((list) => [comment, ...list]);
-          this.commentForm.controls.body.setValue('');
-          this.commentSending.set(false);
-        },
-        error: () => {
-          this.commentSending.set(false);
-          this.commentError.set('Nie udało się dodać komentarza');
-        },
-      });
+    const payload = loggedIn
+      ? { body: value.body.trim() }
+      : {
+          authorEmail: value.authorEmail.trim().toLowerCase(),
+          authorName: value.authorName.trim() || undefined,
+          body: value.body.trim(),
+        };
+
+    this.api.addComment(this.ticket()!.id, payload).subscribe({
+      next: () => {
+        this.commentForm.controls.body.setValue('');
+        this.commentSending.set(false);
+        this.reload(this.ticket()!.id);
+      },
+      error: () => {
+        this.commentSending.set(false);
+        this.commentError.set('Nie udało się dodać komentarza');
+      },
+    });
+  }
+
+  backLink(): string {
+    if (this.auth.isAgent()) return '/helpdesk/dashboard';
+    if (this.auth.isRequester()) return '/helpdesk/my';
+    return '/helpdesk';
+  }
+
+  backLabel(): string {
+    if (this.auth.isAgent()) return '← Dashboard';
+    if (this.auth.isRequester()) return '← Moje zgłoszenia';
+    return '← Helpdesk';
+  }
+
+  timelineDotClass(type: string): string {
+    switch (type) {
+      case 'CREATED':
+        return 'bg-zinc-700';
+      case 'STATUS_CHANGED':
+        return 'bg-amber-500';
+      case 'ASSIGNEE_CHANGED':
+        return 'bg-sky-500';
+      case 'COMMENT':
+        return 'bg-emerald-500';
+      default:
+        return 'bg-zinc-400';
+    }
   }
 
   attachmentUrl(file: Attachment): string {

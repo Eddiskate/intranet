@@ -5,6 +5,7 @@ import type {
   GroupMemberDoc,
   TicketDoc,
   TicketGroupDoc,
+  TimelineEventDoc,
   UserDoc,
   WorkerDoc,
 } from '../types';
@@ -86,8 +87,10 @@ async function ensureIndexes(database: Db): Promise<void> {
     ensureIndex(database.collection('GroupMember'), { userId: 1, groupId: 1 }, { unique: true }),
     ensureIndex(database.collection('Worker'), { email: 1 }, { unique: true }),
     ensureIndex(database.collection('Ticket'), { groupId: 1, createdAt: -1 }),
+    ensureIndex(database.collection('Ticket'), { requesterEmail: 1, createdAt: -1 }),
     ensureIndex(database.collection('Comment'), { ticketId: 1, createdAt: -1 }),
     ensureIndex(database.collection('Attachment'), { ticketId: 1 }),
+    ensureIndex(database.collection('TicketEvent'), { ticketId: 1, createdAt: 1 }),
   ]);
 }
 
@@ -99,6 +102,7 @@ export const cols = {
   attachments: (): Collection<AttachmentDoc> => getDb().collection('Attachment'),
   workers: (): Collection<WorkerDoc> => getDb().collection('Worker'),
   comments: (): Collection<CommentDoc> => getDb().collection('Comment'),
+  timeline: (): Collection<TimelineEventDoc> => getDb().collection('TicketEvent'),
 };
 
 export function toObjectId(id: string): ObjectId {

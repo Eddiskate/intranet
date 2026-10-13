@@ -11,9 +11,11 @@ Modernizacja systemu helpdesk szpitala (Angular + Node.js + MongoDB).
 ## Uruchomienie lokalne (dev)
 
 ```bash
-# API — ustaw DATABASE_URL w backend/.env
+# API — lokalny env + SMTP
 cd backend
-cp .env.example .env   # i uzupełnij Mongo URL
+cp .env.example .env                 # lokalnie
+# cp .env.production.example .env.production   # prod (plik) albo EasyPanel Env
+# uzupełnij DATABASE_URL + SMTP_*
 npm install
 npm run db:seed
 npm run dev
@@ -64,24 +66,32 @@ Uwagi:
 
 Po pierwszym starcie ze seedem ustaw `SEED_ON_START=false` (albo użyj przycisku „Wgraj domyślne grupy” w UI).
 
-### Logowanie
+### Logowanie i role
 
-- Publiczne: zgłoszenia (formularz / podgląd / komentarze)
-- Po zalogowaniu: **Dashboard** i **Użytkownicy** (link „Zaloguj się” w topbarze)
-- Konta ze seeda: e-mail agenta (np. `admin@szpital.local`) + hasło **`helpdesk`**
-- Nowe konta / zmiana hasła: w panelu Użytkownicy
+- Publiczne: formularz zgłoszenia, podgląd, komentarze
+- Przy **pierwszym** zgłoszeniu z danego e-maila tworzone jest konto roli **USER** + mail z hasłem tymczasowym (wymaga SMTP)
+- Po zalogowaniu:
+  - **USER** → **Moje zgłoszenia** (status + timeline + komentarze)
+  - **AGENT / ADMIN** → **Dashboard** i **Użytkownicy**
+- Konta ze seeda (agenci): e-mail + hasło **`helpdesk`**
+- Timeline w zgłoszeniu: utworzenie, zmiana statusu, przypisanie, komentarze
 
 ### Maile (SMTP)
 
-Przy utworzeniu zgłoszenia wysyłane są **2 maile**:
-1. do zgłaszającego — potwierdzenie + link do zgłoszenia
+Pliki:
+- lokalnie: `backend/.env` (wzorzec: `.env.example`)
+- produkcja: `backend/.env.production` (wzorzec: `.env.production.example`) **albo** zmienne w EasyPanel
+
+Przy utworzeniu zgłoszenia wysyłane są maile:
+1. do zgłaszającego — potwierdzenie + link (+ hasło konta przy pierwszym zgłoszeniu)
 2. do agentów grupy — powiadomienie o nowym zgłoszeniu
+3. komentarze — powiadomienie uczestników wątku
 
 | Zmienna | Opis |
 |---|---|
 | `APP_URL` | Publiczny URL aplikacji (linki w mailach), np. `https://intranet.example.pl` |
 | `SMTP_HOST` | Serwer SMTP (bez tego maile są pomijane) |
-| `SMTP_PORT` | np. `587` |
+| `SMTP_PORT` | np. `587` (lub `465` + `SMTP_SECURE=true`) |
 | `SMTP_SECURE` | `true` dla 465 |
 | `SMTP_USER` / `SMTP_PASS` | Logowanie SMTP |
 | `SMTP_FROM` | Nadawca, np. `Helpdesk <helpdesk@szpital.local>` |

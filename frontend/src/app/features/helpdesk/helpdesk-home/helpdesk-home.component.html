@@ -1,74 +1,102 @@
-<section class="hero">
-  <div class="hero__content">
-    <p class="eyebrow">Intranet · Helpdesk</p>
-    <h1>Szpital Rejonowy<br /><span>im. dr. Józefa Rostka</span></h1>
-    <p class="lead">
-      Aby dodać zgłoszenie: kliknij kartę grupy poniżej
-      (np. Informatyka) → wypełnij formularz → „Wyślij zgłoszenie”.
+<section class="mb-10 grid gap-6 lg:grid-cols-[1.4fr_0.8fr] lg:items-end">
+  <div>
+    <p class="mb-2 font-mono text-xs font-semibold tracking-[0.16em] text-ink-muted uppercase">Intranet · Helpdesk</p>
+    <h1 class="font-display mb-4 text-4xl leading-[1.05] font-semibold text-ink sm:text-5xl">
+      Szpital Rejonowy<br />
+      <span class="text-ink-muted">im. dr. Józefa Rostka</span>
+    </h1>
+    <p class="mb-6 max-w-xl text-base leading-relaxed text-ink-muted">
+      Aby dodać zgłoszenie: kliknij kartę grupy poniżej (np. Informatyka) → wypełnij formularz → „Wyślij zgłoszenie”.
     </p>
-    <div class="hero__actions">
-      @if (auth.isLoggedIn()) {
-        <a routerLink="/helpdesk/dashboard" class="btn btn--ghost">Dashboard agenta</a>
-        <a routerLink="/helpdesk/users" class="btn btn--ghost">Użytkownicy</a>
+    <div class="flex flex-wrap gap-2">
+      @if (auth.isLoggedIn() && auth.isRequester()) {
+        <a routerLink="/helpdesk/my" class="ui-btn-ghost no-underline">Moje zgłoszenia</a>
+      } @else if (auth.isLoggedIn() && auth.isAgent()) {
+        <a routerLink="/helpdesk/dashboard" class="ui-btn-ghost no-underline">Dashboard agenta</a>
+        <a routerLink="/helpdesk/users" class="ui-btn-ghost no-underline">Użytkownicy</a>
       } @else {
-        <a routerLink="/login" class="btn btn--ghost">Zaloguj się (panel agenta)</a>
+        <a routerLink="/login" class="ui-btn-ghost no-underline">Zaloguj się</a>
       }
     </div>
   </div>
-  <aside class="notice">
-    <strong>Uwaga</strong>
-    <p>Zamówienia tonerów i podzespołów do drukarek — dział Informatyki.</p>
+
+  <aside class="rounded-2xl border border-amber-300/70 bg-gradient-to-br from-orange-50 to-amber-100 p-5 text-amber-950 shadow-sm dark:border-amber-700/50 dark:from-amber-950/80 dark:to-stone-900 dark:text-amber-200">
+    <strong class="text-sm tracking-wide uppercase">Uwaga</strong>
+    <p class="mt-2 mb-0 text-sm leading-relaxed">
+      Zamówienia tonerów i podzespołów do drukarek — dział Informatyki.
+    </p>
   </aside>
 </section>
 
 @if (loading()) {
-  <p class="state">Ładowanie grup…</p>
+  <p class="text-ink-muted">Ładowanie grup…</p>
 } @else if (error()) {
-  <div class="empty">
-    <p class="state state--error">{{ error() }}</p>
-    <button type="button" class="btn btn--primary" (click)="seedDefaults()" [disabled]="seeding()">
+  <div class="ui-card max-w-xl space-y-4 p-6">
+    <p class="font-semibold text-red-700 dark:text-red-300">{{ error() }}</p>
+    <button type="button" class="ui-btn-primary" (click)="seedDefaults()" [disabled]="seeding()">
       {{ seeding() ? 'Wgrywanie…' : 'Wgraj domyślne grupy' }}
     </button>
   </div>
 } @else if (!groups().length) {
-  <div class="empty">
-    <h2>Brak grup zgłoszeń</h2>
-    <p>
-      Dlatego nie widać przycisku do nowego zgłoszenia.
-      Wgraj domyślne 4 grupy (Informatyka, Aparatura, Telefony, Techniczny) i agentów.
+  <div class="ui-card max-w-xl space-y-4 p-6">
+    <h2 class="font-display m-0 text-2xl text-ink">Brak grup zgłoszeń</h2>
+    <p class="m-0 text-ink-muted">
+      Dlatego nie widać przycisku do nowego zgłoszenia. Wgraj domyślne 4 grupy (Informatyka, Aparatura, Telefony, Techniczny) i agentów.
     </p>
     @if (seedMessage()) {
-      <p class="seed-ok">{{ seedMessage() }}</p>
+      <p class="m-0 font-semibold text-emerald-700 dark:text-emerald-300">{{ seedMessage() }}</p>
     }
-    <button type="button" class="btn btn--primary" (click)="seedDefaults()" [disabled]="seeding()">
+    <button type="button" class="ui-btn-primary" (click)="seedDefaults()" [disabled]="seeding()">
       {{ seeding() ? 'Wgrywanie…' : 'Wgraj domyślne grupy i agentów' }}
     </button>
   </div>
 } @else {
   @if (seedMessage()) {
-    <p class="seed-ok">{{ seedMessage() }}</p>
+    <p class="mb-4 font-semibold text-emerald-700 dark:text-emerald-300">{{ seedMessage() }}</p>
   }
-  <section class="groups">
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     @for (group of groups(); track group.id) {
       <a
-        class="group-card"
-        [class.accent-it]="group.slug === 'informatyka'"
-        [class.accent-med]="group.slug === 'aparatura-medyczna'"
-        [class.accent-phone]="group.slug === 'telefony-kontrola-dostepu'"
-        [class.accent-tech]="group.slug === 'dzial-techniczny'"
+        class="group relative overflow-hidden rounded-2xl border border-line bg-surface/90 p-5 shadow-sm no-underline transition duration-200 hover:-translate-y-1 hover:shadow-lg"
         [routerLink]="['/helpdesk/new', group.slug]"
       >
-        <div class="group-card__top">
-          <span class="group-card__mark" aria-hidden="true"></span>
-          <span class="group-card__count">{{ group._count?.tickets ?? 0 }} zgł.</span>
+        <div
+          class="pointer-events-none absolute inset-x-0 top-0 h-1.5"
+          [class]="
+            group.slug === 'informatyka'
+              ? 'bg-zinc-800'
+              : group.slug === 'aparatura-medyczna'
+                ? 'bg-sky-700'
+                : group.slug === 'telefony-kontrola-dostepu'
+                  ? 'bg-amber-600'
+                  : 'bg-emerald-700'
+          "
+        ></div>
+        <div class="mb-4 flex items-start justify-between gap-3">
+          <span
+            class="size-10 rounded-xl shadow-inner ring-1 ring-black/5"
+            [class]="
+              group.slug === 'informatyka'
+                ? 'bg-gradient-to-br from-zinc-600 to-zinc-900'
+                : group.slug === 'aparatura-medyczna'
+                  ? 'bg-gradient-to-br from-sky-500 to-sky-900'
+                  : group.slug === 'telefony-kontrola-dostepu'
+                    ? 'bg-gradient-to-br from-amber-400 to-amber-800'
+                    : 'bg-gradient-to-br from-emerald-500 to-emerald-900'
+            "
+            aria-hidden="true"
+          ></span>
+          <span class="rounded-full bg-red-600 px-2.5 py-1 text-xs font-bold text-white">
+            {{ group._count?.tickets ?? 0 }} zgł.
+          </span>
         </div>
-        <h2>{{ group.name }}</h2>
-        <p>{{ group.description }}</p>
-        <div class="group-card__people">
-          <span class="label">Osoby odpowiedzialne</span>
-          <p>{{ memberNames(group) || 'Brak przypisanych agentów' }}</p>
+        <h2 class="font-display m-0 mb-2 text-xl text-ink">{{ group.name }}</h2>
+        <p class="mb-5 min-h-12 text-sm leading-relaxed text-ink-muted">{{ group.description }}</p>
+        <div class="mb-5 rounded-xl bg-surface-soft p-3">
+          <span class="text-[11px] font-bold tracking-wide text-ink-muted uppercase">Osoby odpowiedzialne</span>
+          <p class="mt-1 mb-0 text-sm text-ink">{{ memberNames(group) || 'Brak przypisanych agentów' }}</p>
         </div>
-        <span class="group-card__cta">Utwórz zgłoszenie →</span>
+        <span class="text-sm font-bold text-brand group-hover:underline">Utwórz zgłoszenie →</span>
       </a>
     }
   </section>

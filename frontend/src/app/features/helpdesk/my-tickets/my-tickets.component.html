@@ -1,0 +1,88 @@
+<a routerLink="/helpdesk" class="mb-5 inline-block text-sm font-semibold text-ink-muted no-underline hover:text-brand">← Helpdesk</a>
+
+<header class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="mb-1 font-mono text-xs font-semibold tracking-[0.16em] text-ink-muted uppercase">Panel użytkownika</p>
+    <h1 class="font-display m-0 mb-2 text-3xl text-ink">Moje zgłoszenia</h1>
+    <p class="m-0 max-w-2xl text-ink-muted">
+      Status Twoich zgłoszeń oraz komunikacja z agentami — kliknij temat, aby zobaczyć timeline i dodać komentarz.
+    </p>
+  </div>
+
+  <label class="grid gap-1.5 text-sm font-semibold text-ink">
+    Status
+    <select class="ui-input min-w-44" [ngModel]="statusFilter()" (ngModelChange)="onStatusChange($event)">
+      <option value="">Wszystkie</option>
+      <option value="OPEN">Otwarte</option>
+      <option value="IN_PROGRESS">W trakcie</option>
+      <option value="RESOLVED">Rozwiązane</option>
+      <option value="CLOSED">Zamknięte</option>
+    </select>
+  </label>
+</header>
+
+@if (auth.user(); as user) {
+  <div class="mb-5 rounded-xl border border-line bg-surface-soft px-4 py-3 text-sm text-ink-muted">
+    Zalogowany:
+    <strong class="text-ink">{{ user.firstName }} {{ user.lastName }}</strong>
+    · {{ user.email }}
+  </div>
+}
+
+@if (loading()) {
+  <p class="text-ink-muted">Ładowanie zgłoszeń…</p>
+} @else if (error()) {
+  <p class="font-semibold text-red-700 dark:text-red-300">{{ error() }}</p>
+} @else if (!tickets().length) {
+  <div class="ui-card max-w-xl space-y-3 p-6">
+    <p class="m-0 text-ink-muted">Nie masz jeszcze żadnych zgłoszeń.</p>
+    <a routerLink="/helpdesk" class="ui-btn-primary inline-flex no-underline">Utwórz zgłoszenie</a>
+  </div>
+} @else {
+  <div class="ui-table-wrap">
+    <table class="ui-table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Grupa</th>
+          <th>Temat</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (ticket of tickets(); track ticket.id) {
+          <tr>
+            <td class="whitespace-nowrap text-ink-muted">{{ ticket.createdAt | date: 'dd.MM.yyyy HH:mm' }}</td>
+            <td>{{ ticket.group?.name }}</td>
+            <td>
+              <a class="font-semibold text-brand no-underline hover:underline" [routerLink]="['/helpdesk/tickets', ticket.id]">
+                {{ ticket.subject }}
+              </a>
+            </td>
+            <td>
+              <span
+                [class]="
+                  ticket.status === 'OPEN'
+                    ? 'ui-badge-open'
+                    : ticket.status === 'IN_PROGRESS'
+                      ? 'ui-badge-progress'
+                      : ticket.status === 'RESOLVED'
+                        ? 'ui-badge-resolved'
+                        : 'ui-badge-closed'
+                "
+              >
+                {{ statusLabels[ticket.status] }}
+              </span>
+            </td>
+            <td>
+              <a class="text-sm font-bold text-brand no-underline hover:underline" [routerLink]="['/helpdesk/tickets', ticket.id]">
+                Szczegóły →
+              </a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

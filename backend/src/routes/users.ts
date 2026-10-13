@@ -14,7 +14,7 @@ const userSchema = z.object({
   lastName: z.string().min(1),
   email: z.string().email(),
   department: z.enum(USER_DEPARTMENTS as unknown as [string, ...string[]]),
-  role: z.enum(['STAFF', 'AGENT', 'ADMIN']).optional(),
+  role: z.enum(['USER', 'STAFF', 'AGENT', 'ADMIN']).optional(),
   groupIds: z.array(z.string()).optional(),
   password: z.string().optional(),
 });

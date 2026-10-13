@@ -1,46 +1,73 @@
-<div class="shell">
-  <header class="topbar">
-    <a routerLink="/helpdesk" class="brand">
-      <span class="brand__mark" aria-hidden="true"></span>
-      <span class="brand__text">
-        <strong>Intranet</strong>
-        <small>Szpital Rejonowy · Racibórz</small>
-      </span>
-    </a>
+<div class="ui-shell">
+  <header class="sticky top-0 z-20 border-b border-line bg-surface/75 backdrop-blur-xl">
+    <div class="ui-wrap flex flex-wrap items-center justify-between gap-4 py-4">
+      <a routerLink="/helpdesk" class="grid leading-tight no-underline">
+        <strong class="font-display text-lg tracking-tighter text-ink">Intranet</strong>
+        <small class="font-mono text-[10px] tracking-wider text-ink-muted uppercase">Szpital Rejonowy · Racibórz</small>
+      </a>
 
-    <div class="topbar__right">
-      <nav>
-        <a routerLink="/helpdesk" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-          Zgłoszenia
-        </a>
+      <div class="flex flex-wrap items-center gap-3">
+        <nav class="flex flex-wrap gap-1">
+          <a
+            routerLink="/helpdesk"
+            routerLinkActive="bg-brand/10 text-brand"
+            [routerLinkActiveOptions]="{ exact: true }"
+            class="rounded-full px-3.5 py-2 text-sm font-semibold text-ink-muted no-underline transition hover:bg-brand/10 hover:text-brand"
+          >
+            Zgłoszenia
+          </a>
+          @if (auth.isLoggedIn() && auth.isRequester()) {
+            <a
+              routerLink="/helpdesk/my"
+              routerLinkActive="bg-brand/10 text-brand"
+              class="rounded-full px-3.5 py-2 text-sm font-semibold text-ink-muted no-underline transition hover:bg-brand/10 hover:text-brand"
+            >
+              Moje zgłoszenia
+            </a>
+          }
+          @if (auth.isLoggedIn() && auth.isAgent()) {
+            <a
+              routerLink="/helpdesk/dashboard"
+              routerLinkActive="bg-brand/10 text-brand"
+              class="rounded-full px-3.5 py-2 text-sm font-semibold text-ink-muted no-underline transition hover:bg-brand/10 hover:text-brand"
+            >
+              Dashboard
+            </a>
+            <a
+              routerLink="/helpdesk/users"
+              routerLinkActive="bg-brand/10 text-brand"
+              class="rounded-full px-3.5 py-2 text-sm font-semibold text-ink-muted no-underline transition hover:bg-brand/10 hover:text-brand"
+            >
+              Użytkownicy
+            </a>
+          }
+        </nav>
+
+        <button
+          type="button"
+          class="ui-btn-ghost"
+          (click)="theme.toggle()"
+          [attr.aria-label]="theme.mode() === 'dark' ? 'Włącz tryb jasny' : 'Włącz tryb ciemny'"
+          [title]="theme.mode() === 'dark' ? 'Tryb jasny' : 'Tryb ciemny'"
+        >
+          {{ theme.mode() === 'dark' ? 'Tryb jasny' : 'Tryb ciemny' }}
+        </button>
+
         @if (auth.isLoggedIn()) {
-          <a routerLink="/helpdesk/dashboard" routerLinkActive="active">Dashboard</a>
-          <a routerLink="/helpdesk/users" routerLinkActive="active">Użytkownicy</a>
+          <div class="flex items-center gap-2 rounded-full border border-line bg-surface-soft py-1 pr-1 pl-3">
+            <span class="max-w-40 truncate text-sm font-semibold text-ink">{{ auth.displayName() }}</span>
+            <button type="button" class="rounded-full bg-surface px-3 py-1.5 text-xs font-bold text-ink-muted hover:text-ink" (click)="logout()">
+              Wyloguj
+            </button>
+          </div>
+        } @else {
+          <a routerLink="/login" class="ui-btn-primary no-underline">Zaloguj się</a>
         }
-      </nav>
-
-      <button
-        type="button"
-        class="theme-toggle"
-        (click)="theme.toggle()"
-        [attr.aria-label]="theme.mode() === 'dark' ? 'Włącz tryb jasny' : 'Włącz tryb ciemny'"
-        [title]="theme.mode() === 'dark' ? 'Tryb jasny' : 'Tryb ciemny'"
-      >
-        {{ theme.mode() === 'dark' ? 'Tryb jasny' : 'Tryb ciemny' }}
-      </button>
-
-      @if (auth.isLoggedIn()) {
-        <div class="auth-chip">
-          <span class="auth-chip__name">{{ auth.displayName() }}</span>
-          <button type="button" class="auth-chip__out" (click)="logout()">Wyloguj</button>
-        </div>
-      } @else {
-        <a routerLink="/login" class="login-link">Zaloguj się</a>
-      }
+      </div>
     </div>
   </header>
 
-  <main class="content">
+  <main class="ui-wrap py-8 pb-14">
     <router-outlet />
   </main>
 </div>

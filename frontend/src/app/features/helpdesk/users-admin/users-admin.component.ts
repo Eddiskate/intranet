@@ -27,7 +27,7 @@ export class UsersAdminComponent implements OnInit {
     lastName: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
     department: ['', Validators.required],
-    role: this.fb.nonNullable.control<'STAFF' | 'AGENT' | 'ADMIN'>('AGENT'),
+    role: this.fb.nonNullable.control<'USER' | 'STAFF' | 'AGENT' | 'ADMIN'>('AGENT'),
     groupIds: this.fb.nonNullable.control<string[]>([]),
     password: [''],
   });

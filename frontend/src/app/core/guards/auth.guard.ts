@@ -12,3 +12,18 @@ export const authGuard: CanActivateFn = () => {
     queryParams: { returnUrl: router.url },
   });
 };
+
+/** Dashboard agentów / użytkownicy — tylko AGENT/ADMIN */
+export const agentGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (!auth.isLoggedIn()) {
+    return router.createUrlTree(['/login'], {
+      queryParams: { returnUrl: router.url },
+    });
+  }
+  if (auth.isAgent()) {
+    return true;
+  }
+  return router.createUrlTree(['/helpdesk/my']);
+};

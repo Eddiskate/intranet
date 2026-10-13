@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import '../lib/load-env';
 import { connectDb, disconnectDb } from '../lib/db';
 import { DEFAULT_SEED_PASSWORD, seedDefaults } from '../lib/seed-defaults';
 

@@ -55,15 +55,55 @@ async function sendMail(options: {
   }
 }
 
-export async function sendTicketCreatedEmails(input: {
-  ticketId: string;
+export async function sendAccountCredentialsEmail(input: {
+  email: string;
+  firstName: string;
+  password: string;
+}): Promise<boolean> {
+  const loginUrl = `${appBaseUrl()}/login`;
+  return sendMail({
+    to: input.email,
+    subject: 'Helpdesk: dostęp do konta użytkownika',
+    text: [
+      `Witaj ${input.firstName},`,
+      '',
+      'Utworzono dla Ciebie konto w Intranecie Helpdesk (po złożeniu zgłoszenia).',
+      '',
+      `E-mail: ${input.email}`,
+      `Hasło tymczasowe: ${input.password}`,
+      '',
+      `Zaloguj się: ${loginUrl}`,
+      '',
+      'Po zalogowaniu zobaczysz swoje zgłoszenia i ich status oraz możesz dodawać komentarze.',
+      '',
+      'Intranet Helpdesk',
+    ].join('\n'),
+    html: `
+      <p>Witaj <strong>${escapeHtml(input.firstName)}</strong>,</p>
+      <p>Utworzono dla Ciebie konto w Intranecie Helpdesk (po złożeniu zgłoszenia).</p>
+      <p>
+        <strong>E-mail:</strong> ${escapeHtml(input.email)}<br/>
+        <strong>Hasło tymczasowe:</strong> <code>${escapeHtml(input.password)}</code>
+      </p>
+      <p><a href="${loginUrl}">Zaloguj się do panelu</a></p>
+      <p>Po zalogowaniu zobaczysz swoje zgłoszenia, status oraz możesz prowadzić komunikację w wątku.</p>
+      <p style="color:#666;font-size:12px">Intranet Helpdesk</p>
+    `,
+  });
+}
+
+export async function sendTicketCreatedEmails(input: {  ticketId: string;
   subject: string;
   groupName: string;
   requesterName: string;
   requesterEmail: string;
   agentEmails: string[];
+  accountCreated?: boolean;
 }): Promise<void> {
   const link = ticketUrl(input.ticketId);
+  const loginHint = input.accountCreated
+    ? '\nNa podany adres wysłaliśmy też dane do logowania do panelu zgłoszeń.\n'
+    : '\nMożesz śledzić status po zalogowaniu na swoje konto Helpdesk.\n';
 
   // 1) Potwierdzenie dla zgłaszającego
   await sendMail({
@@ -74,7 +114,7 @@ export async function sendTicketCreatedEmails(input: {
       '',
       `Twoje zgłoszenie do grupy „${input.groupName}” zostało przyjęte.`,
       `Temat: ${input.subject}`,
-      '',
+      loginHint,
       `Podgląd zgłoszenia: ${link}`,
       '',
       'Intranet Helpdesk',
@@ -83,6 +123,11 @@ export async function sendTicketCreatedEmails(input: {
       <p>Witaj <strong>${escapeHtml(input.requesterName)}</strong>,</p>
       <p>Twoje zgłoszenie do grupy <strong>${escapeHtml(input.groupName)}</strong> zostało przyjęte.</p>
       <p><strong>Temat:</strong> ${escapeHtml(input.subject)}</p>
+      ${
+        input.accountCreated
+          ? '<p>Na ten adres wysłaliśmy też <strong>dane do logowania</strong> do panelu zgłoszeń.</p>'
+          : '<p>Możesz śledzić status po zalogowaniu na swoje konto Helpdesk.</p>'
+      }
       <p><a href="${link}">Otwórz zgłoszenie</a></p>
       <p style="color:#666;font-size:12px">Intranet Helpdesk</p>
     `,

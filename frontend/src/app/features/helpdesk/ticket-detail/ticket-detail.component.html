@@ -1,132 +1,216 @@
-<a routerLink="/helpdesk/dashboard" class="back">← Dashboard</a>
+<a [routerLink]="backLink()" class="mb-5 inline-block text-sm font-semibold text-ink-muted no-underline hover:text-brand">
+  {{ backLabel() }}
+</a>
 
 @if (error()) {
-  <p class="state state--error">{{ error() }}</p>
+  <p class="font-semibold text-red-700 dark:text-red-300">{{ error() }}</p>
 } @else if (!ticket()) {
-  <p class="state">Ładowanie…</p>
+  <p class="text-ink-muted">Ładowanie…</p>
 } @else {
   @if (ticket(); as t) {
-    <header class="page-head">
+    <header class="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p class="eyebrow">{{ t.group?.name }}</p>
-        <h1>{{ t.subject }}</h1>
-        <p class="meta">
+        <p class="mb-1 font-mono text-xs font-semibold tracking-[0.16em] text-ink-muted uppercase">{{ t.group?.name }}</p>
+        <h1 class="font-display m-0 mb-2 text-3xl text-ink">{{ t.subject }}</h1>
+        <p class="m-0 flex flex-wrap items-center gap-2 text-sm text-ink-muted">
           {{ t.createdAt | date: 'dd.MM.yyyy HH:mm' }} ·
-          <span class="badge" [attr.data-status]="t.status">{{ statusLabels[t.status] }}</span>
+          <span
+            [class]="
+              t.status === 'OPEN'
+                ? 'ui-badge-open'
+                : t.status === 'IN_PROGRESS'
+                  ? 'ui-badge-progress'
+                  : t.status === 'RESOLVED'
+                    ? 'ui-badge-resolved'
+                    : 'ui-badge-closed'
+            "
+          >
+            {{ statusLabels[t.status] }}
+          </span>
         </p>
       </div>
-      <div class="header-controls">
-        <label class="status-control">
-          Przypisz zgłoszenie do
-          <select
-            [ngModel]="t.assigneeId || ''"
-            (ngModelChange)="setAssignee($event)"
-          >
-            <option value="">Nieprzypisane</option>
-            @for (member of groupMembers(t); track member.id) {
-              <option [value]="member.id">{{ member.firstName }} {{ member.lastName }}</option>
-            }
-          </select>
-        </label>
-        <label class="status-control">
-          Zmień status
-          <select [ngModel]="t.status" (ngModelChange)="setStatus($event)">
-            <option value="OPEN">Otwarte</option>
-            <option value="IN_PROGRESS">W trakcie</option>
-            <option value="RESOLVED">Rozwiązane</option>
-            <option value="CLOSED">Zamknięte</option>
-          </select>
-        </label>
-      </div>
+      @if (auth.isAgent()) {
+        <div class="flex flex-wrap gap-3">
+          <label class="grid gap-1.5 text-sm font-semibold text-ink">
+            Przypisz zgłoszenie do
+            <select class="ui-input min-w-48" [ngModel]="t.assigneeId || ''" (ngModelChange)="setAssignee($event)">
+              <option value="">Nieprzypisane</option>
+              @for (member of groupMembers(t); track member.id) {
+                <option [value]="member.id">{{ member.firstName }} {{ member.lastName }}</option>
+              }
+            </select>
+          </label>
+          <label class="grid gap-1.5 text-sm font-semibold text-ink">
+            Zmień status
+            <select class="ui-input min-w-40" [ngModel]="t.status" (ngModelChange)="setStatus($event)">
+              <option value="OPEN">Otwarte</option>
+              <option value="IN_PROGRESS">W trakcie</option>
+              <option value="RESOLVED">Rozwiązane</option>
+              <option value="CLOSED">Zamknięte</option>
+            </select>
+          </label>
+        </div>
+      }
     </header>
 
-    <div class="grid">
-      <section class="panel">
-        <h2>Treść</h2>
-        <p class="body">{{ t.body }}</p>
+    <div class="grid gap-5 lg:grid-cols-[1.35fr_0.85fr]">
+      <div class="space-y-5">
+        <section class="ui-card p-5">
+          <h2 class="font-display m-0 mb-3 text-xl text-ink">Treść</h2>
+          <p class="m-0 whitespace-pre-wrap leading-relaxed text-ink">{{ t.body }}</p>
+        </section>
 
-        <div class="comments">
-          <h3>Komentarze</h3>
+        <section class="ui-card p-5">
+          <h2 class="font-display m-0 mb-4 text-xl text-ink">Timeline</h2>
+          @if (!timeline().length) {
+            <p class="m-0 text-sm text-ink-muted">Brak zdarzeń.</p>
+          } @else {
+            <ol class="relative m-0 space-y-4 border-l border-line pl-5">
+              @for (ev of timeline(); track ev.id) {
+                <li class="relative list-none">
+                  <span
+                    class="absolute top-1.5 -left-[1.4rem] size-2.5 rounded-full ring-4 ring-surface"
+                    [class]="timelineDotClass(ev.type)"
+                  ></span>
+                  <div class="flex flex-wrap items-baseline justify-between gap-2">
+                    <strong class="text-sm text-ink">{{ ev.message }}</strong>
+                    <time class="font-mono text-[11px] text-ink-muted">{{ ev.createdAt | date: 'dd.MM.yyyy HH:mm' }}</time>
+                  </div>
+                  @if (ev.actorName || ev.actorEmail) {
+                    <p class="mt-1 mb-0 text-xs text-ink-muted">
+                      {{ ev.actorName || ev.actorEmail }}
+                      @if (ev.actorRole) {
+                        <span class="font-mono uppercase"> · {{ ev.actorRole }}</span>
+                      }
+                    </p>
+                  }
+                </li>
+              }
+            </ol>
+          }
+        </section>
 
-          <form class="comment-form" [formGroup]="commentForm" (ngSubmit)="submitComment()">
-            <div class="comment-form__row">
-              <div class="field">
-                <label for="authorName">Imię i nazwisko</label>
-                <input id="authorName" type="text" formControlName="authorName" placeholder="opcjonalnie" />
+        <section class="ui-card space-y-4 p-5">
+          <h2 class="font-display m-0 text-xl text-ink">Komentarze / komunikacja</h2>
+
+          <form class="grid gap-3 rounded-xl border border-line bg-surface-soft p-4" [formGroup]="commentForm" (ngSubmit)="submitComment()">
+            @if (!auth.isLoggedIn()) {
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid gap-1.5">
+                  <label class="ui-label" for="authorName">Imię i nazwisko</label>
+                  <input id="authorName" class="ui-input" type="text" formControlName="authorName" placeholder="opcjonalnie" />
+                </div>
+                <div class="grid gap-1.5">
+                  <label class="ui-label" for="authorEmail">E-mail <span class="text-red-600">*</span></label>
+                  <input id="authorEmail" class="ui-input" type="email" formControlName="authorEmail" />
+                </div>
               </div>
-              <div class="field">
-                <label for="authorEmail">E-mail <span>*</span></label>
-                <input id="authorEmail" type="email" formControlName="authorEmail" />
-              </div>
-            </div>
-            <div class="field">
-              <label for="commentBody">Treść komentarza <span>*</span></label>
-              <textarea id="commentBody" rows="4" formControlName="body" placeholder="Napisz komentarz…"></textarea>
+            } @else {
+              <p class="m-0 text-sm text-ink-muted">
+                Piszesz jako
+                <strong class="text-ink">{{ auth.displayName() }}</strong>
+                ({{ auth.user()?.email }})
+              </p>
+            }
+            <div class="grid gap-1.5">
+              <label class="ui-label" for="commentBody">Treść komentarza <span class="text-red-600">*</span></label>
+              <textarea id="commentBody" class="ui-input" rows="4" formControlName="body" placeholder="Napisz komentarz…"></textarea>
             </div>
             @if (commentError()) {
-              <p class="banner-error">{{ commentError() }}</p>
+              <p class="m-0 rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 dark:bg-red-950/50 dark:text-red-300">
+                {{ commentError() }}
+              </p>
             }
-            <button class="btn btn--primary" type="submit" [disabled]="commentSending()">
+            <button class="ui-btn-primary justify-self-start" type="submit" [disabled]="commentSending()">
               {{ commentSending() ? 'Wysyłanie…' : 'Dodaj komentarz' }}
             </button>
           </form>
 
           @if (!comments().length) {
-            <p class="muted">Brak komentarzy — napisz pierwszy.</p>
+            <p class="text-ink-muted">Brak komentarzy — napisz pierwszy.</p>
           } @else {
-            <ul class="comment-list">
+            <ul class="m-0 grid gap-3 p-0">
               @for (c of comments(); track c.id) {
-                <li>
-                  <header>
-                    <strong>{{ c.authorName || c.authorEmail }}</strong>
-                    <span>{{ c.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+                <li class="list-none rounded-xl border border-line bg-surface p-4">
+                  <header class="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+                    <strong class="text-ink">
+                      {{ c.authorName || c.authorEmail }}
+                      @if (c.authorRole) {
+                        <span class="ml-1 font-mono text-[10px] font-semibold tracking-wider text-ink-muted uppercase">{{ c.authorRole }}</span>
+                      }
+                    </strong>
+                    <span class="text-xs text-ink-muted">{{ c.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
                   </header>
                   @if (c.authorName) {
-                    <div class="comment-email">{{ c.authorEmail }}</div>
+                    <div class="mb-2 text-xs text-ink-muted">{{ c.authorEmail }}</div>
                   }
-                  <p>{{ c.body }}</p>
+                  <p class="m-0 whitespace-pre-wrap text-sm leading-relaxed text-ink">{{ c.body }}</p>
                 </li>
               }
             </ul>
           }
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <aside class="panel">
-        <h2>Dane zgłaszającego</h2>
-        <dl>
-          <div><dt>Imię i nazwisko</dt><dd>{{ t.requesterName }}</dd></div>
-          <div><dt>E-mail</dt><dd>{{ t.requesterEmail }}</dd></div>
-          <div><dt>Komórka</dt><dd>{{ t.organizationalUnit }}</dd></div>
-          <div><dt>Pomieszczenie</dt><dd>{{ t.room }}</dd></div>
-          <div><dt>Telefon</dt><dd>{{ t.phone }}</dd></div>
-          <div><dt>IP komputera</dt><dd>{{ t.computerIp || '—' }}</dd></div>
-        </dl>
+      <aside class="ui-card h-fit space-y-5 p-5">
+        <div>
+          <h2 class="font-display m-0 mb-3 text-xl text-ink">Dane zgłaszającego</h2>
+          <dl class="m-0 grid gap-3">
+            <div>
+              <dt class="font-mono text-[10px] font-bold tracking-wider text-ink-muted uppercase">Imię i nazwisko</dt>
+              <dd class="m-0 text-ink">{{ t.requesterName }}</dd>
+            </div>
+            <div>
+              <dt class="font-mono text-[10px] font-bold tracking-wider text-ink-muted uppercase">E-mail</dt>
+              <dd class="m-0 text-ink">{{ t.requesterEmail }}</dd>
+            </div>
+            <div>
+              <dt class="font-mono text-[10px] font-bold tracking-wider text-ink-muted uppercase">Komórka</dt>
+              <dd class="m-0 text-ink">{{ t.organizationalUnit }}</dd>
+            </div>
+            <div>
+              <dt class="font-mono text-[10px] font-bold tracking-wider text-ink-muted uppercase">Pomieszczenie</dt>
+              <dd class="m-0 text-ink">{{ t.room }}</dd>
+            </div>
+            <div>
+              <dt class="font-mono text-[10px] font-bold tracking-wider text-ink-muted uppercase">Telefon</dt>
+              <dd class="m-0 text-ink">{{ t.phone }}</dd>
+            </div>
+            <div>
+              <dt class="font-mono text-[10px] font-bold tracking-wider text-ink-muted uppercase">IP komputera</dt>
+              <dd class="m-0 text-ink">{{ t.computerIp || '—' }}</dd>
+            </div>
+          </dl>
+        </div>
 
         @if (t.attachments?.length) {
-          <h3>Załączniki</h3>
-          <ul class="attachments">
-            @for (file of t.attachments; track file.id) {
-              <li>
-                <button type="button" class="attachment-link" (click)="openPreview(file)">
-                  <span class="attachment-link__name">{{ file.originalName }}</span>
-                  <span class="attachment-link__meta">
-                    {{ (file.size / 1024) | number: '1.0-0' }} KB
-                    · {{ isImage(file) ? 'podgląd' : isPdf(file) ? 'PDF' : 'otwórz' }}
-                  </span>
-                </button>
-              </li>
-            }
-          </ul>
+          <div>
+            <h3 class="font-display m-0 mb-3 text-lg text-ink">Załączniki</h3>
+            <ul class="m-0 grid gap-2 p-0">
+              @for (file of t.attachments; track file.id) {
+                <li class="list-none">
+                  <button type="button" class="flex w-full flex-col rounded-xl border border-line bg-surface-soft px-3 py-2 text-left hover:border-brand" (click)="openPreview(file)">
+                    <span class="text-sm font-semibold text-ink">{{ file.originalName }}</span>
+                    <span class="text-xs text-ink-muted">
+                      {{ (file.size / 1024) | number: '1.0-0' }} KB
+                      · {{ isImage(file) ? 'podgląd' : isPdf(file) ? 'PDF' : 'otwórz' }}
+                    </span>
+                  </button>
+                </li>
+              }
+            </ul>
+          </div>
         }
 
         @if (t.group?.members?.length) {
-          <h3>Osoby w grupie</h3>
-          <ul>
-            @for (m of t.group!.members; track m.id) {
-              <li>{{ m.user?.firstName }} {{ m.user?.lastName }}</li>
-            }
-          </ul>
+          <div>
+            <h3 class="font-display m-0 mb-3 text-lg text-ink">Osoby w grupie</h3>
+            <ul class="m-0 grid gap-1 p-0 text-sm text-ink">
+              @for (m of t.group!.members; track m.id) {
+                <li class="list-none">{{ m.user?.firstName }} {{ m.user?.lastName }}</li>
+              }
+            </ul>
+          </div>
         }
       </aside>
     </div>
@@ -134,28 +218,34 @@
 }
 
 @if (preview(); as file) {
-  <div class="lightbox" (click)="closePreview()" role="dialog" aria-modal="true" [attr.aria-label]="'Podgląd: ' + file.originalName">
-    <div class="lightbox__panel" (click)="$event.stopPropagation()">
-      <header class="lightbox__head">
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+    (click)="closePreview()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'Podgląd: ' + file.originalName"
+  >
+    <div class="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl" (click)="$event.stopPropagation()">
+      <header class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
         <div>
-          <strong>{{ file.originalName }}</strong>
-          <span>{{ (file.size / 1024) | number: '1.0-0' }} KB</span>
+          <strong class="text-ink">{{ file.originalName }}</strong>
+          <span class="ml-2 text-sm text-ink-muted">{{ (file.size / 1024) | number: '1.0-0' }} KB</span>
         </div>
-        <div class="lightbox__actions">
-          <a class="btn btn--ghost" [href]="attachmentUrl(file)" target="_blank" rel="noopener">Otwórz w nowej karcie</a>
-          <button type="button" class="btn btn--ghost" (click)="closePreview()">Zamknij</button>
+        <div class="flex gap-2">
+          <a class="ui-btn-ghost no-underline" [href]="attachmentUrl(file)" target="_blank" rel="noopener">Otwórz w nowej karcie</a>
+          <button type="button" class="ui-btn-ghost" (click)="closePreview()">Zamknij</button>
         </div>
       </header>
 
-      <div class="lightbox__body">
+      <div class="min-h-0 flex-1 overflow-auto bg-zinc-950/5 p-4 dark:bg-black/40">
         @if (isImage(file)) {
-          <img [src]="attachmentUrl(file)" [alt]="file.originalName" />
+          <img class="mx-auto max-h-[70vh] max-w-full object-contain" [src]="attachmentUrl(file)" [alt]="file.originalName" />
         } @else if (isPdf(file)) {
-          <iframe [src]="safeAttachmentUrl(file)" title="Podgląd PDF"></iframe>
+          <iframe class="h-[70vh] w-full rounded-xl border border-line bg-white" [src]="safeAttachmentUrl(file)" title="Podgląd PDF"></iframe>
         } @else {
-          <div class="lightbox__fallback">
-            <p>Podgląd tego typu pliku nie jest dostępny w przeglądarce.</p>
-            <a class="btn btn--primary" [href]="attachmentUrl(file)" [download]="file.originalName">Pobierz plik</a>
+          <div class="flex flex-col items-center gap-4 py-16 text-center">
+            <p class="m-0 text-ink-muted">Podgląd tego typu pliku nie jest dostępny w przeglądarce.</p>
+            <a class="ui-btn-primary no-underline" [href]="attachmentUrl(file)" [download]="file.originalName">Pobierz plik</a>
           </div>
         }
       </div>

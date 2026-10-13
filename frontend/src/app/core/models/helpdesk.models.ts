@@ -15,13 +15,16 @@ export interface GroupMember {
   group?: TicketGroup;
 }
 
+export type UserRole = 'USER' | 'STAFF' | 'AGENT' | 'ADMIN';
+
 export interface User {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
   department: string;
-  role: 'STAFF' | 'AGENT' | 'ADMIN';
+  phone?: string;
+  role: UserRole;
   groups?: GroupMember[];
 }
 
@@ -37,6 +40,8 @@ export interface Worker {
 
 export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 
+export type TimelineEventType = 'CREATED' | 'STATUS_CHANGED' | 'ASSIGNEE_CHANGED' | 'COMMENT';
+
 export interface Attachment {
   id: string;
   originalName: string;
@@ -50,7 +55,20 @@ export interface TicketComment {
   ticketId: string;
   authorEmail: string;
   authorName?: string | null;
+  authorRole?: UserRole | null;
   body: string;
+  createdAt: string;
+}
+
+export interface TimelineEvent {
+  id: string;
+  ticketId: string;
+  type: TimelineEventType;
+  message: string;
+  actorEmail?: string | null;
+  actorName?: string | null;
+  actorRole?: UserRole | null;
+  meta?: Record<string, unknown> | null;
   createdAt: string;
 }
 
@@ -58,6 +76,7 @@ export interface Ticket {
   id: string;
   groupId: string;
   assigneeId?: string | null;
+  requesterUserId?: string | null;
   requesterName: string;
   requesterEmail: string;
   organizationalUnit: string;
@@ -73,6 +92,7 @@ export interface Ticket {
   assignee?: User | null;
   attachments?: Attachment[];
   comments?: TicketComment[];
+  timeline?: TimelineEvent[];
   _count?: { comments: number };
 }
 
@@ -90,7 +110,7 @@ export interface CreateTicketPayload {
 }
 
 export interface CreateCommentPayload {
-  authorEmail: string;
+  authorEmail?: string;
   authorName?: string;
   body: string;
 }
