@@ -1,31 +1,33 @@
-<a routerLink="/helpdesk" class="mb-5 inline-block text-sm font-semibold text-ink-muted no-underline hover:text-brand">← Helpdesk</a>
+<a routerLink="/helpdesk" class="mb-5 inline-block text-sm font-semibold text-brand no-underline hover:underline">← Helpdesk</a>
 
 <section class="mx-auto max-w-md">
-  <header class="mb-5">
-    <p class="mb-1 text-xs font-bold tracking-[0.12em] text-ink-muted uppercase">Konto agenta</p>
-    <h1 class="font-display m-0 mb-2 text-3xl text-ink">Zaloguj się</h1>
-    <p class="m-0 text-ink-muted">Dostęp do dashboardu i zarządzania użytkownikami.</p>
-  </header>
-
-  <form class="ui-card grid gap-4 p-6" [formGroup]="form" (ngSubmit)="submit()">
-    @if (error()) {
-      <p class="m-0 rounded-xl bg-red-50 px-3.5 py-3 text-sm font-semibold text-red-700 dark:bg-red-950/50 dark:text-red-300">
-        {{ error() }}
-      </p>
-    }
-
-    <div class="grid gap-1.5">
-      <label class="ui-label" for="email">E-mail</label>
-      <input id="email" class="ui-input" type="email" formControlName="email" autocomplete="username" />
+  <div class="mb-5 overflow-hidden rounded-xl border border-line bg-white shadow-sm dark:bg-surface">
+    <div class="bg-brand px-6 py-5 text-white">
+      <p class="mb-1 font-mono text-[10px] font-semibold tracking-[0.18em] text-white/70 uppercase">Konto</p>
+      <h1 class="font-display m-0 text-2xl font-extrabold">Zaloguj się</h1>
+      <p class="mt-2 mb-0 text-sm text-white/80">Panel zgłoszeń — użytkownik lub agent</p>
     </div>
 
-    <div class="grid gap-1.5">
-      <label class="ui-label" for="password">Hasło</label>
-      <input id="password" class="ui-input" type="password" formControlName="password" autocomplete="current-password" />
-    </div>
+    <form class="grid gap-4 p-6" [formGroup]="form" (ngSubmit)="submit()">
+      @if (error()) {
+        <p class="m-0 rounded-lg bg-red-50 px-3.5 py-3 text-sm font-semibold text-red-700 dark:bg-red-950/50 dark:text-red-300">
+          {{ error() }}
+        </p>
+      }
 
-    <button class="ui-btn-primary" type="submit" [disabled]="loading()">
-      {{ loading() ? 'Logowanie…' : 'Zaloguj się' }}
-    </button>
-  </form>
+      <div class="grid gap-1.5">
+        <label class="ui-label" for="email">E-mail</label>
+        <input id="email" class="ui-input" type="email" formControlName="email" autocomplete="username" />
+      </div>
+
+      <div class="grid gap-1.5">
+        <label class="ui-label" for="password">Hasło</label>
+        <input id="password" class="ui-input" type="password" formControlName="password" autocomplete="current-password" />
+      </div>
+
+      <button class="ui-btn-primary" type="submit" [disabled]="loading()">
+        {{ loading() ? 'Logowanie…' : 'Zaloguj się' }}
+      </button>
+    </form>
+  </div>
 </section>

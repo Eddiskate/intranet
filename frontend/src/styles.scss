@@ -1,39 +1,47 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme {
-  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
-  --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --color-ink: #121212;
-  --color-ink-muted: #5c5c5c;
+  /* Paleta jak na szpital.raciborz.pl — granat + biel */
+  --color-ink: #0f2744;
+  --color-ink-muted: #5a6b7d;
   --color-surface: #ffffff;
-  --color-surface-soft: #f4f4f5;
-  --color-canvas: #ececee;
-  --color-line: rgba(24, 24, 27, 0.12);
-  --color-line-strong: rgba(24, 24, 27, 0.22);
-  --color-brand: #18181b;
-  --color-brand-soft: #3f3f46;
-  --color-accent: #b45309;
-  --color-accent-soft: #ffedd5;
+  --color-surface-soft: #f3f6fa;
+  --color-canvas: #eef2f7;
+  --color-line: rgba(15, 39, 68, 0.1);
+  --color-line-strong: rgba(15, 39, 68, 0.18);
+  --color-brand: #0b3d6e;
+  --color-brand-soft: #1a5a96;
+  --color-brand-deep: #072f55;
+  --color-accent: #c8102e;
+  --color-accent-soft: #fde8ec;
+  --color-tile-green: #1f9d55;
+  --color-tile-blue: #1a6fbf;
+  --color-tile-red: #d62828;
+  --color-tile-navy: #245a8f;
+  --color-tile-purple: #6b3fa0;
 }
 
 @layer base {
   html[data-theme='dark'] {
-    --color-ink: #f4f4f5;
-    --color-ink-muted: #a1a1aa;
-    --color-surface: #18181b;
-    --color-surface-soft: #27272a;
-    --color-canvas: #0a0a0a;
-    --color-line: rgba(244, 244, 245, 0.12);
-    --color-line-strong: rgba(244, 244, 245, 0.22);
-    --color-brand: #fafafa;
-    --color-brand-soft: #d4d4d8;
-    --color-accent: #fdba74;
-    --color-accent-soft: #3a2414;
+    --color-ink: #e8eef6;
+    --color-ink-muted: #9aadc0;
+    --color-surface: #0f1c2c;
+    --color-surface-soft: #162538;
+    --color-canvas: #0a1420;
+    --color-line: rgba(232, 238, 246, 0.1);
+    --color-line-strong: rgba(232, 238, 246, 0.18);
+    --color-brand: #6eb3f0;
+    --color-brand-soft: #4a9adf;
+    --color-brand-deep: #0b3d6e;
+    --color-accent: #ff6b7a;
+    --color-accent-soft: #3a1520;
   }
 
   html {
@@ -41,25 +49,19 @@
   }
 
   body {
-    @apply m-0 min-h-screen font-sans text-ink tracking-tight;
-    background:
-      radial-gradient(1200px 600px at 10% -10%, rgba(24, 24, 27, 0.06), transparent 55%),
-      radial-gradient(900px 500px at 90% 0%, rgba(180, 83, 9, 0.08), transparent 50%),
-      linear-gradient(180deg, var(--color-canvas), color-mix(in srgb, var(--color-canvas) 70%, #d4d4d8));
+    @apply m-0 min-h-screen font-sans text-ink;
+    background: linear-gradient(180deg, #f7f9fc 0%, var(--color-canvas) 40%, #e8eef5 100%);
+  }
+
+  html[data-theme='dark'] body {
+    background: linear-gradient(180deg, #0a1420 0%, #0f1c2c 100%);
   }
 
   h1,
   h2,
   h3,
   .font-display {
-    @apply font-display tracking-tighter;
-  }
-
-  html[data-theme='dark'] body {
-    background:
-      radial-gradient(1000px 500px at 15% -5%, rgba(250, 250, 250, 0.05), transparent 50%),
-      radial-gradient(800px 420px at 90% 5%, rgba(180, 83, 9, 0.12), transparent 45%),
-      linear-gradient(180deg, #0a0a0a, #111113);
+    @apply font-display tracking-tight;
   }
 
   a {
@@ -74,22 +76,21 @@
   }
 }
 
-/* Shared utility patterns used across templates */
 @layer components {
   .ui-shell {
     @apply min-h-screen;
   }
 
   .ui-wrap {
-    @apply mx-auto w-[90%] max-w-7xl;
+    @apply mx-auto w-[92%] max-w-7xl;
   }
 
   .ui-card {
-    @apply rounded-2xl border border-line bg-surface/90 shadow-sm backdrop-blur-sm;
+    @apply rounded-xl border border-line bg-surface shadow-sm;
   }
 
   .ui-input {
-    @apply w-full rounded-xl border border-line-strong bg-surface-soft px-3.5 py-2.5 text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/15;
+    @apply w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 dark:bg-surface-soft;
   }
 
   .ui-label {
@@ -97,31 +98,35 @@
   }
 
   .ui-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-950 px-4 py-2.5 text-sm font-bold text-zinc-50 shadow-md transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border dark:border-zinc-100/20 dark:from-zinc-600 dark:to-zinc-900;
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-brand px-5 py-2.5 text-sm font-bold tracking-wide text-white uppercase transition hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .ui-btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-line-strong bg-surface-soft px-4 py-2.5 text-sm font-bold text-brand-soft transition hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-brand/30 bg-white px-4 py-2.5 text-sm font-bold tracking-wide text-brand uppercase transition hover:bg-brand hover:text-white disabled:cursor-not-allowed disabled:opacity-60 dark:bg-surface-soft;
+  }
+
+  .ui-btn-outline-light {
+    @apply inline-flex items-center justify-center rounded border border-white/80 px-4 py-1.5 text-xs font-bold tracking-wider text-white uppercase transition hover:bg-white/15;
   }
 
   .ui-badge-open {
-    @apply inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900 dark:bg-amber-950 dark:text-amber-300;
+    @apply inline-flex rounded px-2.5 py-1 text-xs font-bold text-amber-900 bg-amber-100 dark:bg-amber-950 dark:text-amber-300;
   }
 
   .ui-badge-progress {
-    @apply inline-flex rounded-full bg-zinc-200 px-2.5 py-1 text-xs font-bold text-zinc-800 dark:bg-zinc-700 dark:text-zinc-100;
+    @apply inline-flex rounded px-2.5 py-1 text-xs font-bold text-sky-900 bg-sky-100 dark:bg-sky-950 dark:text-sky-300;
   }
 
   .ui-badge-resolved {
-    @apply inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300;
+    @apply inline-flex rounded px-2.5 py-1 text-xs font-bold text-emerald-900 bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-300;
   }
 
   .ui-badge-closed {
-    @apply inline-flex rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300;
+    @apply inline-flex rounded px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 dark:bg-slate-800 dark:text-slate-300;
   }
 
   .ui-table-wrap {
-    @apply overflow-x-auto rounded-2xl border border-line bg-surface/90 shadow-sm;
+    @apply overflow-x-auto rounded-xl border border-line bg-surface shadow-sm;
   }
 
   .ui-table {
@@ -129,7 +134,7 @@
   }
 
   .ui-table th {
-    @apply border-b border-line bg-surface-soft/90 px-3 py-3 font-bold text-ink-muted;
+    @apply border-b border-line bg-brand/5 px-3 py-3 font-bold tracking-wide text-brand uppercase text-xs;
   }
 
   .ui-table td {
@@ -138,5 +143,26 @@
 
   .ui-table tr:last-child td {
     @apply border-b-0;
+  }
+
+  /* Kafle jak na stronie szpitala */
+  .tile-green {
+    @apply flex min-h-56 flex-col justify-between bg-tile-green p-5 text-white no-underline shadow-md transition hover:-translate-y-0.5 hover:shadow-lg;
+  }
+
+  .tile-blue {
+    @apply flex min-h-56 flex-col justify-between bg-tile-blue p-5 text-white no-underline shadow-md transition hover:-translate-y-0.5 hover:shadow-lg;
+  }
+
+  .tile-red {
+    @apply flex min-h-56 flex-col justify-between bg-tile-red p-5 text-white no-underline shadow-md transition hover:-translate-y-0.5 hover:shadow-lg;
+  }
+
+  .tile-navy {
+    @apply flex min-h-56 flex-col justify-between bg-tile-navy p-5 text-white no-underline shadow-md transition hover:-translate-y-0.5 hover:shadow-lg;
+  }
+
+  .tile-purple {
+    @apply flex min-h-56 flex-col justify-between bg-tile-purple p-5 text-white no-underline shadow-md transition hover:-translate-y-0.5 hover:shadow-lg;
   }
 }

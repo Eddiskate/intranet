@@ -1,26 +1,46 @@
 <div class="ui-shell">
-  <header class="sticky top-0 z-20 border-b border-line bg-surface/75 backdrop-blur-xl">
-    <div class="ui-wrap flex flex-wrap items-center justify-between gap-4 py-4">
-      <a routerLink="/helpdesk" class="grid leading-tight no-underline">
-        <strong class="font-display text-lg tracking-tighter text-ink">Intranet</strong>
-        <small class="font-mono text-[10px] tracking-wider text-ink-muted uppercase">Szpital Rejonowy · Racibórz</small>
+  <!-- Pasek informacyjny jak na stronie szpitala -->
+  <div class="hidden border-b border-line bg-surface-soft text-[11px] text-ink-muted sm:block">
+    <div class="ui-wrap flex flex-wrap items-center justify-between gap-2 py-2">
+      <div class="flex flex-wrap items-center gap-4">
+        <span class="font-semibold text-brand">Intranet Helpdesk</span>
+        <span>Szpital Rejonowy im. dr. Józefa Rostka</span>
+      </div>
+      <div class="font-mono tracking-wide uppercase">Racibórz · ul. Gamowska 3</div>
+    </div>
+  </div>
+
+  <header class="sticky top-0 z-20 border-b border-line bg-white/95 shadow-sm backdrop-blur dark:bg-surface/95">
+    <div class="ui-wrap flex flex-wrap items-center justify-between gap-4 py-3.5">
+      <a routerLink="/helpdesk" class="flex items-center gap-3 no-underline">
+        <!-- Krzyż szpitalny (logo) -->
+        <span class="relative flex size-10 items-center justify-center" aria-hidden="true">
+          <span class="absolute h-8 w-2.5 rounded-sm bg-brand"></span>
+          <span class="absolute h-2.5 w-8 rounded-sm bg-brand"></span>
+        </span>
+        <span class="grid leading-tight">
+          <strong class="font-display text-[15px] font-extrabold tracking-wide text-brand uppercase sm:text-base">
+            Szpital Rejonowy
+          </strong>
+          <small class="text-[11px] font-medium text-ink-muted">im. dr. Józefa Rostka · Intranet</small>
+        </span>
       </a>
 
-      <div class="flex flex-wrap items-center gap-3">
-        <nav class="flex flex-wrap gap-1">
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <nav class="flex flex-wrap items-center gap-0.5">
           <a
             routerLink="/helpdesk"
-            routerLinkActive="bg-brand/10 text-brand"
+            routerLinkActive="text-brand border-brand"
             [routerLinkActiveOptions]="{ exact: true }"
-            class="rounded-full px-3.5 py-2 text-sm font-semibold text-ink-muted no-underline transition hover:bg-brand/10 hover:text-brand"
+            class="border-b-2 border-transparent px-3 py-2 text-xs font-bold tracking-wide text-ink-muted no-underline uppercase transition hover:text-brand"
           >
             Zgłoszenia
           </a>
           @if (auth.isLoggedIn() && auth.isRequester()) {
             <a
               routerLink="/helpdesk/my"
-              routerLinkActive="bg-brand/10 text-brand"
-              class="rounded-full px-3.5 py-2 text-sm font-semibold text-ink-muted no-underline transition hover:bg-brand/10 hover:text-brand"
+              routerLinkActive="text-brand border-brand"
+              class="border-b-2 border-transparent px-3 py-2 text-xs font-bold tracking-wide text-ink-muted no-underline uppercase transition hover:text-brand"
             >
               Moje zgłoszenia
             </a>
@@ -28,15 +48,15 @@
           @if (auth.isLoggedIn() && auth.isAgent()) {
             <a
               routerLink="/helpdesk/dashboard"
-              routerLinkActive="bg-brand/10 text-brand"
-              class="rounded-full px-3.5 py-2 text-sm font-semibold text-ink-muted no-underline transition hover:bg-brand/10 hover:text-brand"
+              routerLinkActive="text-brand border-brand"
+              class="border-b-2 border-transparent px-3 py-2 text-xs font-bold tracking-wide text-ink-muted no-underline uppercase transition hover:text-brand"
             >
               Dashboard
             </a>
             <a
               routerLink="/helpdesk/users"
-              routerLinkActive="bg-brand/10 text-brand"
-              class="rounded-full px-3.5 py-2 text-sm font-semibold text-ink-muted no-underline transition hover:bg-brand/10 hover:text-brand"
+              routerLinkActive="text-brand border-brand"
+              class="border-b-2 border-transparent px-3 py-2 text-xs font-bold tracking-wide text-ink-muted no-underline uppercase transition hover:text-brand"
             >
               Użytkownicy
             </a>
@@ -45,18 +65,17 @@
 
         <button
           type="button"
-          class="ui-btn-ghost"
+          class="rounded-md border border-line px-3 py-2 text-xs font-bold text-ink-muted uppercase hover:border-brand hover:text-brand"
           (click)="theme.toggle()"
           [attr.aria-label]="theme.mode() === 'dark' ? 'Włącz tryb jasny' : 'Włącz tryb ciemny'"
-          [title]="theme.mode() === 'dark' ? 'Tryb jasny' : 'Tryb ciemny'"
         >
-          {{ theme.mode() === 'dark' ? 'Tryb jasny' : 'Tryb ciemny' }}
+          {{ theme.mode() === 'dark' ? 'Jasny' : 'Ciemny' }}
         </button>
 
         @if (auth.isLoggedIn()) {
-          <div class="flex items-center gap-2 rounded-full border border-line bg-surface-soft py-1 pr-1 pl-3">
-            <span class="max-w-40 truncate text-sm font-semibold text-ink">{{ auth.displayName() }}</span>
-            <button type="button" class="rounded-full bg-surface px-3 py-1.5 text-xs font-bold text-ink-muted hover:text-ink" (click)="logout()">
+          <div class="flex items-center gap-2 rounded-md border border-line bg-surface-soft py-1 pr-1 pl-3">
+            <span class="max-w-36 truncate text-sm font-semibold text-ink">{{ auth.displayName() }}</span>
+            <button type="button" class="rounded bg-brand px-3 py-1.5 text-[11px] font-bold text-white uppercase" (click)="logout()">
               Wyloguj
             </button>
           </div>
@@ -67,7 +86,17 @@
     </div>
   </header>
 
-  <main class="ui-wrap py-8 pb-14">
+  <main class="ui-wrap py-8 pb-16">
     <router-outlet />
   </main>
+
+  <footer class="mt-auto border-t border-line bg-brand-deep text-white">
+    <div class="ui-wrap flex flex-wrap items-center justify-between gap-3 py-5 text-sm">
+      <div>
+        <strong class="font-extrabold tracking-wide uppercase">Szpital Rejonowy im. dr. Józefa Rostka</strong>
+        <p class="m-0 mt-1 text-white/70">Intranet Helpdesk · Racibórz</p>
+      </div>
+      <p class="m-0 font-mono text-xs tracking-wider text-white/50 uppercase">Wewnętrzny system zgłoszeń</p>
+    </div>
+  </footer>
 </div>

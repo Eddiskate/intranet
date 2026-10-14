@@ -1,15 +1,32 @@
+import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 
 /**
  * Lokalnie: `.env`
- * Produkcja (plik): `.env.production` (nadpisuje wartości z `.env` jeśli oba istnieją)
- * EasyPanel: zmienne z panelu i tak wygrywają nad plikiem, gdy są ustawione w procesie.
+ * Produkcja (plik): `.env.production`
+ * EasyPanel: zmienne z panelu nadpisują plik, gdy są w procesie.
  */
-const root = path.join(__dirname, '..');
-const isProd = process.env.NODE_ENV === 'production';
+const candidates = [
+  path.join(process.cwd(), '.env'),
+  path.join(__dirname, '..', '.env'),
+  path.join(__dirname, '..', '..', '.env'),
+];
 
-dotenv.config({ path: path.join(root, '.env') });
-if (isProd) {
-  dotenv.config({ path: path.join(root, '.env.production'), override: true });
+const envPath = candidates.find((p) => fs.existsSync(p));
+if (envPath) {
+  dotenv.config({ path: envPath });
+} else {
+  dotenv.config();
+}
+
+if (process.env.NODE_ENV === 'production') {
+  const prodCandidates = [
+    path.join(process.cwd(), '.env.production'),
+    path.join(__dirname, '..', '.env.production'),
+  ];
+  const prodPath = prodCandidates.find((p) => fs.existsSync(p));
+  if (prodPath) {
+    dotenv.config({ path: prodPath, override: true });
+  }
 }
