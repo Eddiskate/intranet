@@ -4,6 +4,7 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import { connectDb } from './lib/db';
+import { basicAuthMiddleware, isBasicAuthEnabled } from './lib/basic-auth';
 import { backfillMissingPasswords, DEFAULT_SEED_PASSWORD } from './lib/seed-defaults';
 import usersRouter from './routes/users';
 import groupsRouter from './routes/groups';
@@ -32,6 +33,12 @@ async function main() {
   }
 
   app.set('trust proxy', 1);
+
+  // HTTP Basic Auth (EasyPanel: HTAUTH_USER + HTAUTH_PASS) — chroni całą aplikację
+  app.use(basicAuthMiddleware);
+  if (isBasicAuthEnabled()) {
+    console.log('HTTP Basic Auth: włączony (HTAUTH_USER / HTAUTH_PASS)');
+  }
 
   const corsOrigin = process.env.CORS_ORIGIN;
   app.use(
